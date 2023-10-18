@@ -14,7 +14,7 @@ import "forge-std/Script.sol";
 
 
 // forge script script/Deployer.s.sol:TreasureDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
-contract TreasureDeployer is Script {
+contract PrivacyContractsDeployer is Script {
     ProxyAdmin public savourTsProxyAdmin;
     DelegationManager public delegation;
     StrategyManager public strategy;
