@@ -4,8 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../src/contracts/core/DelegationManager.sol";
-import "../src/contracts/core/StrategyManager.sol";
+import "../src/contracts/L2/core/TreasureManager.sol";
 import "../src/contracts/access/PauserRegistry.sol";
 
 import "../src/test/mocks/EmptyContract.sol";
@@ -13,11 +12,10 @@ import "../src/test/mocks/EmptyContract.sol";
 import "forge-std/Script.sol";
 
 
-// forge script script/Deployer.s.sol:TreasureDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
-contract PrivacyContractsDeployer is Script {
+// forge script script/L2Deployer.s.sol:TreasureDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
+contract TreasureDeployer is Script {
     ProxyAdmin public savourTsProxyAdmin;
-    DelegationManager public delegation;
-    StrategyManager public strategy;
+    TreasureManager public tsManager;
     EmptyContract public emptyContract;
     PauserRegistry public savourPcPauserReg;
     address[] pausers;
@@ -33,15 +31,15 @@ contract PrivacyContractsDeployer is Script {
 
         emptyContract = new EmptyContract();
 
-        delegation = DelegationManager(
+        tsManager = TreasureManager(
             address(new TransparentUpgradeableProxy(address(emptyContract), address(savourTsProxyAdmin), "")
             )
         );
 
-        DelegationManager delegationImplementation = new DelegationManager();
+        TreasureManager tsManagerImplementation = new TreasureManager();
 
-        vm.writeFile("data/delegation.addr", vm.toString(address(delegation)));
-        vm.writeFile("data/delegationImplementation.addr", vm.toString(address(delegationImplementation)));
+        vm.writeFile("data/tsManager.addr", vm.toString(address(tsManager)));
+        vm.writeFile("data/tsManagerImplementation.addr", vm.toString(address(tsManagerImplementation)));
 
         vm.stopBroadcast();
     }

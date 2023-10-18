@@ -24,7 +24,7 @@ forge test
 ### 4.Deploy
 
 ```shell
-forge script script/Deployer.s.sol:PrivacyContractsDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
+forge script script/L1Deployer.s.sol:PrivacyContractsDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
 ```
 
 ### 5. Summary

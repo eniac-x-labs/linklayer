@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.20;
 
-import "../interface/IPauserRegistry.sol";
+import "./interface/IPauserRegistry.sol";
 
 
 contract PauserRegistry is IPauserRegistry {
