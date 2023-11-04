@@ -1,4 +1,4 @@
-## layer3-privacy-contracts
+## protect-x-contracts
 
 - This staking protocol will be used for layer3 tokenenomics;
 - After operator or staker stake their layer two eth(WETH) on our system, they will get staking tickets, our system staking reward and layer one Eth staking reward;
