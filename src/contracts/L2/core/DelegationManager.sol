@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.19;
+pragma solidity =^0.8.20;
 
 // import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 // import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
@@ -11,10 +11,9 @@ pragma solidity =0.8.19;
 
 /**
  * @title DelegationManager
- * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
- * @notice  This is the contract for delegation in EigenLayer. The main functionalities of this contract are
- * - enabling anyone to register as an operator in EigenLayer
+ * @notice Terms of Service: https://docs.shadow-x.xyz/overview/terms-of-service
+ * @notice  This is the contract for delegation in shadow-x. The main functionalities of this contract are
+ * - enabling anyone to register as an operator in shadow-x
  * - allowing operators to specify parameters related to stakers who delegate to them
  * - enabling any staker to delegate its stake to the operator of its choice (a given staker can only delegate to a single operator at a time)
  * - enabling a staker to undelegate its assets from the operator it is delegated to (performed as part of the withdrawal process, initiated through the StrategyManager)
@@ -38,11 +37,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     /// @notice Canonical, virtual beacon chain ETH strategy
     IStrategy public constant beaconChainETHStrategy = IStrategy(0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0);
 
-    // @notice Simple permission for functions that are only callable by the StrategyManager contract OR by the EigenPodManagerContract
-    modifier onlyStrategyManagerOrEigenPodManager() {
+    // @notice Simple permission for functions that are only callable by the StrategyManager contract OR by the ShadowxPodManagerContract
+    modifier onlyStrategyManagerOrShadowxPodManager() {
         require(
-            msg.sender == address(strategyManager) || msg.sender == address(eigenPodManager),
-            "DelegationManager: onlyStrategyManagerOrEigenPodManager"
+            msg.sender == address(strategyManager) || msg.sender == address(shadowxPodManager),
+            "DelegationManager: onlyStrategyManagerOrShadowxPodManager"
         );
         _;
     }
@@ -52,13 +51,13 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     *******************************************************************************/
 
     /**
-     * @dev Initializes the immutable addresses of the strategy mananger and slasher.
+     * @dev Initializes the immutable addresses of the strategy mananger.
      */
     constructor(
         IStrategyManager _strategyManager,
-        ISlasher _slasher,
-        IEigenPodManager _eigenPodManager
-    ) DelegationManagerStorage(_strategyManager, _slasher, _eigenPodManager) {
+        // ISlasher _slasher,
+        IShadowxPodManager _shadowxPodManager
+    ) DelegationManagerStorage(_strategyManager, _shadowxPodManager) { //removed _slasher ***
         _disableInitializers();
         ORIGINAL_CHAIN_ID = block.chainid;
     }
@@ -93,7 +92,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     }
 
     /**
-     * @notice Registers the caller as an operator in EigenLayer.
+     * @notice Registers the caller as an operator in shadow-x.
      * @param registeringOperatorDetails is the `OperatorDetails` for the operator.
      * @param metadataURI is a URI for the operator's metadata, i.e. a link providing more details on the operator.
      *
@@ -122,7 +121,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      * @notice Updates an operator's stored `OperatorDetails`.
      * @param newOperatorDetails is the updated `OperatorDetails` for the operator, to replace their current OperatorDetails`.
      *
-     * @dev The caller must have previously registered as an operator in EigenLayer.
+     * @dev The caller must have previously registered as an operator in shadow-x.
      * @dev This function will revert if the caller attempts to set their `earningsReceiver` to address(0).
      */
     function modifyOperatorDetails(OperatorDetails calldata newOperatorDetails) external {
@@ -141,7 +140,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     /**
      * @notice Caller delegates their stake to an operator.
-     * @param operator The account (`msg.sender`) is delegating its assets to for use in serving applications built on EigenLayer.
+     * @param operator The account (`msg.sender`) is delegating its assets to for use in serving applications built on shadow-x.
      * @param approverSignatureAndExpiry Verifies the operator approves of this delegation
      * @param approverSalt A unique single use value tied to an individual signature.
      * @dev The approverSignatureAndExpiry is used in the event that:
@@ -164,7 +163,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     /**
      * @notice Caller delegates a staker's stake to an operator with valid signatures from both parties.
      * @param staker The account delegating stake to an `operator` account
-     * @param operator The account (`staker`) is delegating its assets to for use in serving applications built on EigenLayer.
+     * @param operator The account (`staker`) is delegating its assets to for use in serving applications built on shadow-x.
      * @param stakerSignatureAndExpiry Signed data from the staker authorizing delegating stake to an operator
      * @param approverSignatureAndExpiry is a parameter that will be used for verifying that the operator approves of this delegation action in the event that:
      * @param approverSalt Is a salt used to help guarantee signature uniqueness. Each salt can only be used once by a given approver.
@@ -392,13 +391,13 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      * @param shares The number of shares to increase.
      *
      * @dev *If the staker is actively delegated*, then increases the `staker`'s delegated shares in `strategy` by `shares`. Otherwise does nothing.
-     * @dev Callable only by the StrategyManager or EigenPodManager.
+     * @dev Callable only by the StrategyManager or ShadowxPodManager.
      */
     function increaseDelegatedShares(
         address staker,
         IStrategy strategy,
         uint256 shares
-    ) external onlyStrategyManagerOrEigenPodManager {
+    ) external onlyStrategyManagerOrShadowxPodManager {
         // if the staker is delegated to an operator
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
@@ -418,13 +417,13 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      * @param shares The number of shares to decrease.
      *
      * @dev *If the staker is actively delegated*, then decreases the `staker`'s delegated shares in `strategy` by `shares`. Otherwise does nothing.
-     * @dev Callable only by the StrategyManager or EigenPodManager.
+     * @dev Callable only by the StrategyManager or ShadowxPodManager.
      */
     function decreaseDelegatedShares(
         address staker,
         IStrategy strategy,
         uint256 shares
-    ) external onlyStrategyManagerOrEigenPodManager {
+    ) external onlyStrategyManagerOrShadowxPodManager {
         // if the staker is delegated to an operator
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
@@ -478,7 +477,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      * @param approverSalt Is a salt used to help guarantee signature uniqueness. Each salt can only be used once by a given approver.
      * @dev Ensures that:
      *          1) the `staker` is not already delegated to an operator
-     *          2) the `operator` has indeed registered as an operator in EigenLayer
+     *          2) the `operator` has indeed registered as an operator in shadow-x
      *          3) if applicable, that the approver signature is valid and non-expired
      */
     function _delegate(
@@ -488,7 +487,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         bytes32 approverSalt
     ) internal onlyWhenNotPaused(PAUSED_NEW_DELEGATION) {
         require(!isDelegated(staker), "DelegationManager._delegate: staker is already actively delegated");
-        require(isOperator(operator), "DelegationManager._delegate: operator is not registered in EigenLayer");
+        require(isOperator(operator), "DelegationManager._delegate: operator is not registered in Shadow-X");
 
         // fetch the operator's `delegationApprover` address and store it in memory in case we need to use it multiple times
         address _delegationApprover = _operatorDetails[operator].delegationApprover;
@@ -599,11 +598,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 });
                 unchecked { ++i; }
             }
-        // Award shares back in StrategyManager/EigenPodManager. If withdrawer is delegated, increase the shares delegated to the operator
+        // Award shares back in StrategyManager/ShadowxPodManager. If withdrawer is delegated, increase the shares delegated to the operator
         } else {
             address currentOperator = delegatedTo[msg.sender];
             for (uint256 i = 0; i < withdrawal.strategies.length; ) {
-                /** When awarding podOwnerShares in EigenPodManager, we need to be sure to only give them back to the original podOwner.
+                /** When awarding podOwnerShares in ShadowxPodManager, we need to be sure to only give them back to the original podOwner.
                  * Other strategy sharescan + will be awarded to the withdrawer.
                  */
                 if (withdrawal.strategies[i] == beaconChainETHStrategy) {
@@ -612,7 +611,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                     * Update shares amount depending upon the returned value.
                     * The return value will be lower than the input value in the case where the staker has an existing share deficit
                     */
-                    uint256 increaseInDelegateableShares = eigenPodManager.addShares({
+                    uint256 increaseInDelegateableShares = ShadowxPodManager.addShares({
                         podOwner: staker,
                         shares: withdrawal.shares[i]
                     });
@@ -702,7 +701,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 });
             }
 
-            // Remove active shares from EigenPodManager/StrategyManager
+            // Remove active shares from ShadowxPodManager/StrategyManager
             if (strategies[i] == beaconChainETHStrategy) {
                 /**
                  * This call will revert if it would reduce the Staker's virtual beacon chain ETH shares below zero.
@@ -710,7 +709,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                  * shares from the operator to whom the staker is delegated.
                  * It will also revert if the share amount being withdrawn is not a whole Gwei amount.
                  */
-                eigenPodManager.removeShares(staker, shares[i]);
+                shadowxPodManager.removeShares(staker, shares[i]);
             } else {
                 // this call will revert if `shares[i]` exceeds the Staker's current shares in `strategies[i]`
                 strategyManager.removeShares(staker, strategies[i], shares[i]);
@@ -749,11 +748,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     /**
      * @notice Withdraws `shares` in `strategy` to `withdrawer`. If the shares are virtual beaconChainETH shares, then a call is ultimately forwarded to the
-     * `staker`s EigenPod; otherwise a call is ultimately forwarded to the `strategy` with info on the `token`.
+     * `staker`s shadowxPod; otherwise a call is ultimately forwarded to the `strategy` with info on the `token`.
      */
     function _withdrawSharesAsTokens(address staker, address withdrawer, IStrategy strategy, uint256 shares, IERC20 token) internal {
         if (strategy == beaconChainETHStrategy) {
-            eigenPodManager.withdrawSharesAsTokens({
+            shadowxPodManager.withdrawSharesAsTokens({
                 podOwner: staker,
                 destination: withdrawer,
                 shares: shares
@@ -830,11 +829,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      */
     function getDelegatableShares(address staker) public view returns (IStrategy[] memory, uint256[] memory) {
         // Get currently active shares and strategies for `staker`
-        int256 podShares = eigenPodManager.podOwnerShares(staker);
+        int256 podShares = shadowxPodManager.podOwnerShares(staker);
         (IStrategy[] memory strategyManagerStrats, uint256[] memory strategyManagerShares) 
             = strategyManager.getDeposits(staker);
 
-        // Has no shares in EigenPodManager, but potentially some in StrategyManager
+        // Has no shares in shadowxPodManager, but potentially some in StrategyManager
         if (podShares <= 0) {
             return (strategyManagerStrats, strategyManagerShares);
         }
@@ -843,7 +842,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         uint256[] memory shares;
 
         if (strategyManagerStrats.length == 0) {
-            // Has shares in EigenPodManager, but not in StrategyManager
+            // Has shares in shadowxPodManager, but not in StrategyManager
             strategies = new IStrategy[](1);
             shares = new uint256[](1);
             strategies[0] = beaconChainETHStrategy;
@@ -863,7 +862,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 unchecked { ++i; }
             }
 
-            // 3. Place EigenPodManager strat/shares in return arrays
+            // 3. Place shadowxPodManager strat/shares in return arrays
             strategies[strategies.length - 1] = beaconChainETHStrategy;
             shares[strategies.length - 1] = uint256(podShares);
         }
@@ -943,6 +942,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
      * @dev Recalculates the domain separator when the chainid changes due to a fork.
      */
     function _calculateDomainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("EigenLayer")), block.chainid, address(this)));
+        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("Shadow-X")), block.chainid, address(this)));
     }
 }

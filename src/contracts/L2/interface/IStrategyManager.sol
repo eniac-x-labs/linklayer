@@ -4,18 +4,18 @@ pragma solidity >=0.8.19;
 // import "./IStrategy.sol";
 // import "./ISlasher.sol";
 // import "./IDelegationManager.sol";
-// import "./IEigenPodManager.sol";
+// import "./IShadowxPodManager.sol";
 
 /**
- * @title Interface for the primary entrypoint for funds into EigenLayer.
+ * @title Interface for the primary entrypoint for funds into Shadow-X.
  * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
+ * @notice Terms of Service: https://docs.shadow-x.xyz/overview/terms-of-service
  * @notice See the `StrategyManager` contract itself for implementation details.
  */
 interface IStrategyManager {
     /**
      * @notice Emitted when a new deposit occurs on behalf of `staker`.
-     * @param staker Is the staker who is depositing funds into EigenLayer.
+     * @param staker Is the staker who is depositing funds into Shadow-X.
      * @param strategy Is the strategy that `staker` has deposited into.
      * @param token Is the token that `staker` deposited.
      * @param shares Is the number of new shares `staker` has been granted in `strategy`.
@@ -108,14 +108,14 @@ interface IStrategyManager {
      */
     function removeStrategiesFromDepositWhitelist(IStrategy[] calldata strategiesToRemoveFromWhitelist) external;
 
-    /// @notice Returns the single, central Delegation contract of EigenLayer
+    /// @notice Returns the single, central Delegation contract of Shadow-X
     function delegation() external view returns (IDelegationManager);
 
-    /// @notice Returns the single, central Slasher contract of EigenLayer
+    /// @notice Returns the single, central Slasher contract of Shadow-X
     function slasher() external view returns (ISlasher);
 
-    /// @notice Returns the EigenPodManager contract of EigenLayer
-    function eigenPodManager() external view returns (IEigenPodManager);
+    /// @notice Returns the ShadowxPodManager contract of Shadow-X
+    function shadowxPodManager() external view returns (IShadowxPodManager);
 
     /// @notice Returns the address of the `strategyWhitelister`
     function strategyWhitelister() external view returns (address);

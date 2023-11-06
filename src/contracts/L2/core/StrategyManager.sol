@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.19;
+pragma solidity =^0.8.20;
 
 // import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 // import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 // import "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
 // import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "../interfaces/IEigenPodManager.sol";
+// import "../interfaces/IShadowxPodManager.sol";
 // import "../permissions/Pausable.sol";
 // import "./StrategyManagerStorage.sol";
 // import "../libraries/EIP1271SignatureUtils.sol";
 
 /**
- * @title The primary entry- and exit-point for funds into and out of EigenLayer.
- * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
+ * @title The primary entry- and exit-point for funds into and out of shadow-x.
+ * @notice Terms of Service: https://docs.shadow-x.xyz/overview/terms-of-service
  * @notice This contract is for managing deposits in different strategies. The main
  * functionalities are:
  * - adding and removing strategies that any delegator can deposit into
@@ -56,15 +55,15 @@ contract StrategyManager is
     }
 
     /**
-     * @param _delegation The delegation contract of EigenLayer.
-     * @param _slasher The primary slashing contract of EigenLayer.
-     * @param _eigenPodManager The contract that keeps track of EigenPod stakes for restaking beacon chain ether.
+     * @param _delegation The delegation contract of shadow-x.
+     * @param _slasher The primary slashing contract of shadow-x.
+     * @param _shadowxPodManager The contract that keeps track of shadowxPod stakes for restaking beacon chain ether.
      */
     constructor(
         IDelegationManager _delegation,
-        IEigenPodManager _eigenPodManager,
-        ISlasher _slasher
-    ) StrategyManagerStorage(_delegation, _eigenPodManager, _slasher) {
+        IShadowxPodManager _shadowxPodManager
+        // ISlasher _slasher   // ***commented out slasher
+    ) StrategyManagerStorage(_delegation, _shadowxPodManager) { // _slasher removed
         _disableInitializers();
         ORIGINAL_CHAIN_ID = block.chainid;
     }
@@ -424,7 +423,7 @@ contract StrategyManager is
 
     // @notice Internal function for calculating the current domain separator of this contract
     function _calculateDomainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("EigenLayer")), block.chainid, address(this)));
+        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("Shadow-X")), block.chainid, address(this)));
     }
 
 // LIMITED BACKWARDS-COMPATIBILITY FOR DEPRECATED FUNCTIONALITY

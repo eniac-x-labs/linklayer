@@ -7,17 +7,17 @@ import "./IStrategyManager.sol";
 /**
  * @title DelegationManager
  * @author Layr Labs, Inc.
- * @notice Terms of Service: https://docs.eigenlayer.xyz/overview/terms-of-service
- * @notice  This is the contract for delegation in EigenLayer. The main functionalities of this contract are
- * - enabling anyone to register as an operator in EigenLayer
+ * @notice Terms of Service: https://docs.Shadow-X.xyz/overview/terms-of-service
+ * @notice  This is the contract for delegation in Shadow-X. The main functionalities of this contract are
+ * - enabling anyone to register as an operator in Shadow-X
  * - allowing operators to specify parameters related to stakers who delegate to them
  * - enabling any staker to delegate its stake to the operator of its choice (a given staker can only delegate to a single operator at a time)
  * - enabling a staker to undelegate its assets from the operator it is delegated to (performed as part of the withdrawal process, initiated through the StrategyManager)
  */
 interface IDelegationManager is ISignatureUtils {
-    // @notice Struct used for storing information about a single operator who has registered with EigenLayer
+    // @notice Struct used for storing information about a single operator who has registered with Shadow-X
     struct OperatorDetails {
-        // @notice address to receive the rewards that the operator earns via serving applications built on EigenLayer.
+        // @notice address to receive the rewards that the operator earns via serving applications built on Shadow-X.
         address earningsReceiver;
         /**
          * @notice Address to verify signatures when a staker wishes to delegate to the operator, as well as controlling "forced undelegations".
@@ -102,7 +102,7 @@ interface IDelegationManager is ISignatureUtils {
         address withdrawer;
     }
 
-    // @notice Emitted when a new operator registers in EigenLayer and provides their OperatorDetails.
+    // @notice Emitted when a new operator registers in Shadow-X and provides their OperatorDetails.
     event OperatorRegistered(address indexed operator, OperatorDetails operatorDetails);
 
     /// @notice Emitted when an operator updates their OperatorDetails to @param newOperatorDetails
@@ -146,7 +146,7 @@ interface IDelegationManager is ISignatureUtils {
     event WithdrawalDelayBlocksSet(uint256 previousValue, uint256 newValue);
 
     /**
-     * @notice Registers the caller as an operator in EigenLayer.
+     * @notice Registers the caller as an operator in Shadow-X.
      * @param registeringOperatorDetails is the `OperatorDetails` for the operator.
      * @param metadataURI is a URI for the operator's metadata, i.e. a link providing more details on the operator.
      *
@@ -163,7 +163,7 @@ interface IDelegationManager is ISignatureUtils {
      * @notice Updates an operator's stored `OperatorDetails`.
      * @param newOperatorDetails is the updated `OperatorDetails` for the operator, to replace their current OperatorDetails`.
      *
-     * @dev The caller must have previously registered as an operator in EigenLayer.
+     * @dev The caller must have previously registered as an operator in Shadow-X.
      * @dev This function will revert if the caller attempts to set their `earningsReceiver` to address(0).
      */
     function modifyOperatorDetails(OperatorDetails calldata newOperatorDetails) external;
@@ -176,7 +176,7 @@ interface IDelegationManager is ISignatureUtils {
 
     /**
      * @notice Caller delegates their stake to an operator.
-     * @param operator The account (`msg.sender`) is delegating its assets to for use in serving applications built on EigenLayer.
+     * @param operator The account (`msg.sender`) is delegating its assets to for use in serving applications built on Shadow-X.
      * @param approverSignatureAndExpiry Verifies the operator approves of this delegation
      * @param approverSalt A unique single use value tied to an individual signature.
      * @dev The approverSignatureAndExpiry is used in the event that:
@@ -196,7 +196,7 @@ interface IDelegationManager is ISignatureUtils {
     /**
      * @notice Caller delegates a staker's stake to an operator with valid signatures from both parties.
      * @param staker The account delegating stake to an `operator` account
-     * @param operator The account (`staker`) is delegating its assets to for use in serving applications built on EigenLayer.
+     * @param operator The account (`staker`) is delegating its assets to for use in serving applications built on Shadow-X.
      * @param stakerSignatureAndExpiry Signed data from the staker authorizing delegating stake to an operator
      * @param approverSignatureAndExpiry is a parameter that will be used for verifying that the operator approves of this delegation action in the event that:
      * @param approverSalt Is a salt used to help guarantee signature uniqueness. Each salt can only be used once by a given approver.
