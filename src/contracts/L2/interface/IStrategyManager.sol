@@ -3,7 +3,7 @@ pragma solidity >=0.8.19;
 
 // import "./IStrategy.sol";
 // import "./ISlasher.sol";
-// import "./IDelegationManager.sol";
+import "./IDelegationManager.sol";
 // import "./IShadowxPodManager.sol";
 
 /**
