@@ -5,7 +5,7 @@ import "./IERC165.sol";
 
 /// @title ERC-1155 Multi Token Standard
 /// @dev See https://eips.ethereum.org/EIPS/eip-1155
-/// Note: The ERC-165 identifier for this interface is 0xd9b67a26.
+/// Note: The ERC-165 identifier for this interfaces is 0xd9b67a26.
 interface IERC1155 is IERC165 {
     /// @dev
     /// - Either `TransferSingle` or `TransferBatch` MUST emit when tokens are transferred, including zero value transfers as well as minting or burning (see "Safe Transfer Rules" section of the standard).

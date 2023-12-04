@@ -9,7 +9,7 @@ pragma experimental ABIEncoderV2;
 // 2. Otherwise if you can be influenced by an earlier call, or if reading some state, you're `view`,
 // 3. Otherwise you're `pure`.
 
-// The `VmSafe` interface does not allow manipulation of the EVM state or other actions that may
+// The `VmSafe` interfaces does not allow manipulation of the EVM state or other actions that may
 // result in Script simulations differing from on-chain execution. It is recommended to only use
 // these cheats in scripts.
 interface VmSafe {
@@ -497,7 +497,7 @@ interface VmSafe {
     function writeJson(string calldata json, string calldata path, string calldata valueKey) external;
 }
 
-// The `Vm` interface does allow manipulation of the EVM state. These are all intended to be used
+// The `Vm` interfaces does allow manipulation of the EVM state. These are all intended to be used
 // in tests, but it is not recommended to use these cheats in scripts.
 interface Vm is VmSafe {
     // ======== EVM  ========

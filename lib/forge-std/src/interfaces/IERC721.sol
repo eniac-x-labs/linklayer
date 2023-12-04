@@ -5,7 +5,7 @@ import "./IERC165.sol";
 
 /// @title ERC-721 Non-Fungible Token Standard
 /// @dev See https://eips.ethereum.org/EIPS/eip-721
-/// Note: the ERC-165 identifier for this interface is 0x80ac58cd.
+/// Note: the ERC-165 identifier for this interfaces is 0x80ac58cd.
 interface IERC721 is IERC165 {
     /// @dev This emits when ownership of any NFT changes by any mechanism.
     /// This event emits when NFTs are created (`from` == 0) and destroyed
@@ -101,7 +101,7 @@ interface IERC721 is IERC165 {
     function isApprovedForAll(address _owner, address _operator) external view returns (bool);
 }
 
-/// @dev Note: the ERC-165 identifier for this interface is 0x150b7a02.
+/// @dev Note: the ERC-165 identifier for this interfaces is 0x150b7a02.
 interface IERC721TokenReceiver {
     /// @notice Handle the receipt of an NFT
     /// @dev The ERC721 smart contract calls this function on the recipient
@@ -122,7 +122,7 @@ interface IERC721TokenReceiver {
 
 /// @title ERC-721 Non-Fungible Token Standard, optional metadata extension
 /// @dev See https://eips.ethereum.org/EIPS/eip-721
-/// Note: the ERC-165 identifier for this interface is 0x5b5e139f.
+/// Note: the ERC-165 identifier for this interfaces is 0x5b5e139f.
 interface IERC721Metadata is IERC721 {
     /// @notice A descriptive name for a collection of NFTs in this contract
     function name() external view returns (string memory _name);
@@ -139,7 +139,7 @@ interface IERC721Metadata is IERC721 {
 
 /// @title ERC-721 Non-Fungible Token Standard, optional enumeration extension
 /// @dev See https://eips.ethereum.org/EIPS/eip-721
-/// Note: the ERC-165 identifier for this interface is 0x780e9d63.
+/// Note: the ERC-165 identifier for this interfaces is 0x780e9d63.
 interface IERC721Enumerable is IERC721 {
     /// @notice Count NFTs tracked by this contract
     /// @return A count of valid NFTs tracked by this contract, where each one of

@@ -5,7 +5,7 @@ import {Test} from "../src/Test.sol";
 import {Vm, VmSafe} from "../src/Vm.sol";
 
 contract VmTest is Test {
-    // This test ensures that functions are never accidentally removed from a Vm interface, or
+    // This test ensures that functions are never accidentally removed from a Vm interfaces, or
     // inadvertently moved between Vm and VmSafe. This test must be updated each time a function is
     // added to or removed from Vm or VmSafe.
     function test_interfaceId() public {
