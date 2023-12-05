@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.8.12;
 
+import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "../interfaces/IFundingPooolManager.sol";
 import "../access/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 
 contract FundingPoool is Initializable, Pausable, IFundingPoool {
-    using SafeERC20 for IERC20;
 
     uint8 internal constant PAUSED_DEPOSITS = 0;
     uint8 internal constant PAUSED_WITHDRAWALS = 1;
@@ -19,7 +16,6 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
     uint256 public totalShares;
 
     IFundingPooolManager public immutable foundingPoolManager;
-    IERC20 public stakingToken;
 
     modifier onlyFundingPooolManager() {
         require(msg.sender == address(foundingPoolManager), "FundingPoool.FundingPooolManager");
@@ -31,34 +27,30 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
         _disableInitializers();
     }
 
-    function initialize(IERC20 _stakingToken, IPauserRegistry _pauserRegistry) public virtual initializer {
-        _initializeStrategyBase(_stakingToken, _pauserRegistry);
+    function initialize(IPauserRegistry _pauserRegistry) public virtual initializer {
+        _initializeStrategyBase(_pauserRegistry);
     }
 
     function _initializeStrategyBase(
-        IERC20 _stakingToken,
         IPauserRegistry _pauserRegistry
     ) internal onlyInitializing {
-        stakingToken = _stakingToken;
         _initializePauser(_pauserRegistry, UNPAUSE_ALL);
     }
 
     function deposit(
-        IERC20 token,
         uint256 amount
     ) external payable virtual override onlyWhenNotPaused(PAUSED_DEPOSITS) onlyfoundingPoolManager returns (uint256 newShares) {
 
-        _beforeDeposit(token, amount);
+        _beforeDeposit(amount);
 
-        require(token == stakingToken, "FundingPoool.deposit: Can only deposit stakingToken");
 
         uint256 priorTotalShares = totalShares;
 
         uint256 virtualShareAmount = priorTotalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
-        uint256 virtualPriorTokenBalance = virtualTokenBalance - amount;
+        uint256 virtualEthBalance = _ethBalance() + BALANCE_OFFSET;
+        uint256 virtualPriorEthBalance = virtualEthBalance - amount;
 
-        newShares = (amount * virtualShareAmount) / virtualPriorTokenBalance;
+        newShares = (amount * virtualShareAmount) / virtualPriorEthBalance;
 
         require(newShares != 0, "FundingPoool.deposit: newShares cannot be zero");
 
@@ -69,12 +61,9 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
 
     function withdraw(
         address recipient,
-        IERC20 token,
         uint256 amountShares
     ) external virtual override onlyWhenNotPaused(PAUSED_WITHDRAWALS) onlyfoundingPoolManager {
-        _beforeWithdrawal(recipient, token, amountShares);
-
-        require(token == stakingToken, "FundingPoool.withdraw: Can only withdraw the strategy token");
+        _beforeWithdrawal(recipient, amountShares);
 
         uint256 priorTotalShares = totalShares;
 
@@ -84,19 +73,20 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
         );
 
         uint256 virtualPriorTotalShares = priorTotalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
-        uint256 amountToSend = (virtualTokenBalance * amountShares) / virtualPriorTotalShares;
+        uint256 virtualEthBalance = _ethBalance() + BALANCE_OFFSET;
+        uint256 amountToSend = (virtualEthBalance * amountShares) / virtualPriorTotalShares;
 
         totalShares = priorTotalShares - amountShares;
 
-        stakingToken.safeTransfer(recipient, amountToSend);
+        bool success = SafeCall.call(recipient, gasleft(), amountToSend, hex"");
+        require(success, "FundingPool: ETH withdraw failed");
     }
 
     // solhint-disable-next-line no-empty-blocks
-    function _beforeDeposit(IERC20 token, uint256 amount) internal virtual {}
+    function _beforeDeposit(uint256 amount) internal virtual {}
 
     // solhint-disable-next-line no-empty-blocks
-    function _beforeWithdrawal(address recipient, IERC20 token, uint256 amountShares) internal virtual {}
+    function _beforeWithdrawal(address recipient, uint256 amountShares) internal virtual {}
 
     function explanation() external pure virtual override returns (string memory) {
         return "Base funding pool implementation to inherit from for more complex implementations";
@@ -104,9 +94,9 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
 
     function sharesToStakingView(uint256 amountShares) public view virtual override returns (uint256) {
         uint256 virtualTotalShares = totalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualEthBalance = _ethBalance() + BALANCE_OFFSET;
 
-        return (virtualTokenBalance * amountShares) / virtualTotalShares;
+        return (virtualEthBalance * amountShares) / virtualTotalShares;
     }
 
     function sharesToStaking(uint256 amountShares) public view virtual override returns (uint256) {
@@ -115,9 +105,9 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
 
     function stakingToSharesView(uint256 amountStaking) public view virtual returns (uint256) {
         uint256 virtualTotalShares = totalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualEthBalance = _ethBalance() + BALANCE_OFFSET;
 
-        return (amountStaking * virtualTotalShares) / virtualTokenBalance;
+        return (amountStaking * virtualTotalShares) / virtualEthBalance;
     }
 
     function stakingToShares(uint256 amountStaking) external view virtual returns (uint256) {
@@ -137,8 +127,8 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
     }
 
     // slither-disable-next-line dead-code
-    function _tokenBalance() internal view virtual returns (uint256) {
-        return stakingToken.balanceOf(address(this));
+    function _ethBalance() internal view virtual returns (uint256) {
+        return address(this).balance;
     }
 
     uint256[48] private __gap;

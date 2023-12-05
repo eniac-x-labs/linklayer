@@ -7,7 +7,7 @@ import "./IDelegationManager.sol";
 
 interface IFundingPooolManager {
 
-    event Deposit(address staker, IERC20 token, IFundingPoool FundingPool, uint256 shares);
+    event Deposit(address staker, IFundingPoool FundingPool, uint256 shares);
 
     event FundingPoolWhitelisterChanged(address previousAddress, address newAddress);
 
@@ -15,13 +15,10 @@ interface IFundingPooolManager {
 
     event FundingPoolRemovedFromDepositWhitelist(IFundingPoool FundingPool);
 
-
-    function depositIntoFundingPool(IFundingPoool FundingPool, IERC20 token, uint256 amount) external returns (uint256 shares);
-
+    function depositIntoFundingPool(IFundingPoool FundingPool, uint256 amount) external returns (uint256 shares);
 
     function depositIntoFundingPoolWithSignature(
         IFundingPoool FundingPool,
-        IERC20 token,
         uint256 amount,
         address staker,
         uint256 expiry,
@@ -32,7 +29,7 @@ interface IFundingPooolManager {
 
     function addShares(address staker, IFundingPoool FundingPool, uint256 shares) external;
 
-    function withdrawSharesAsTokens(address recipient, IFundingPoool FundingPool, uint256 shares, IERC20 token) external;
+    function withdrawSharesAsEths(address recipient, IFundingPoool FundingPool, uint256 shares) external;
 
     function stakerFundingPoolShares(address user, IFundingPoool FundingPool) external view returns (uint256 shares);
 

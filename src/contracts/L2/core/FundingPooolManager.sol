@@ -4,19 +4,16 @@ pragma solidity =0.8.12;
 import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../access/Pausable.sol";
 import "../libraries/EIP1271SignatureUtils.sol";
 import "../interfaces/IFundingPooolManager.sol";
-
+import "../libraries/SafeCall.sol";
 
 
 contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable {
-    using SafeERC20 for IERC20;
-
     uint8 internal constant PAUSED_DEPOSITS = 0;
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-    bytes32 public constant DEPOSIT_TYPEHASH = keccak256("Deposit(address FundingPool,address token,uint256 amount,uint256 nonce,uint256 expiry)");
+    bytes32 public constant DEPOSIT_TYPEHASH = keccak256("Deposit(address FundingPool,uint256 amount,uint256 nonce,uint256 expiry)");
 
     uint8 internal constant MAX_STAKER_FundingPool_LIST_LENGTH = 32;
     bytes32 internal _DOMAIN_SEPARATOR;
@@ -79,21 +76,15 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         _setFundingPoolWhitelister(initialFundingPoolWhitelister);
     }
 
-    receive() external payable {
-        depositIntoFundingPool(0, address(0), msg.value);
-    }
-
     function depositIntoFundingPool(
         IFundingPoool FundingPool,
-        IERC20 token,
         uint256 amount
     ) external payable onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
-        shares = _depositIntoFundingPool(msg.sender, FundingPool, token, amount);
+        shares = _depositIntoFundingPool(msg.sender, FundingPool, amount);
     }
 
     function depositIntoFundingPoolWithSignature(
         IFundingPoool FundingPool,
-        IERC20 token,
         uint256 amount,
         address staker,
         uint256 expiry,
@@ -102,16 +93,15 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         require(expiry >= block.timestamp, "FundingPoolManager.depositIntoFundingPoolWithSignature: signature expired");
 
         uint256 nonce = nonces[staker];
-        bytes32 structHash = keccak256(abi.encode(DEPOSIT_TYPEHASH, FundingPool, token, amount, nonce, expiry));
+        bytes32 structHash = keccak256(abi.encode(DEPOSIT_TYPEHASH, FundingPool, amount, nonce, expiry));
         unchecked {
             nonces[staker] = nonce + 1;
         }
-
         bytes32 digestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), structHash));
 
         EIP1271SignatureUtils.checkSignature_EIP1271(staker, digestHash, signature);
 
-        shares = _depositIntoFundingPool(staker, FundingPool, token, amount);
+        shares = _depositIntoFundingPool(staker, FundingPool, amount);
     }
 
     function removeShares(
@@ -130,13 +120,12 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         _addShares(staker, FundingPool, shares);
     }
 
-    function withdrawSharesAsTokens(
+    function withdrawSharesAsEths(
         address recipient,
         IFundingPoool FundingPool,
-        uint256 shares,
-        IERC20 token
+        uint256 shares
     ) external onlyDelegationManager {
-        FundingPool.withdraw(recipient, token, shares);
+        FundingPool.withdraw(recipient, shares);
     }
 
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external onlyDelegationManager returns(bool, bytes32) {
@@ -205,20 +194,18 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     function _depositIntoFundingPool(
         address staker,
         IFundingPoool FundingPool,
-        IERC20 token,
         uint256 amount
     ) internal onlyFundingPoolsWhitelistedForDeposit(FundingPool) returns (uint256 shares) {
+        bool success = SafeCall.call(address(FundingPool), gasleft(), _amount, hex"");
 
-        token.safeTransferFrom(msg.sender, address(FundingPool), amount);
+        if (success) {
+            shares = FundingPool.deposit(amount);
 
-        shares = FundingPool.deposit(token, amount);
+            _addShares(staker, FundingPool, shares);
 
-        _addShares(staker, FundingPool, shares);
-
-        delegation.increaseDelegatedShares(staker, FundingPool, shares);
-
-        emit Deposit(staker, token, FundingPool, shares);
-
+            delegation.increaseDelegatedShares(staker, FundingPool, shares);
+        }
+        emit Deposit(staker, FundingPool, shares);
         return shares;
     }
 
