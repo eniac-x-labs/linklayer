@@ -9,7 +9,6 @@ import "../libraries/EIP1271SignatureUtils.sol";
 import "../interfaces/IFundingPooolManager.sol";
 import "../libraries/SafeCall.sol";
 
-
 contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable {
     uint8 internal constant PAUSED_DEPOSITS = 0;
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -81,27 +80,6 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         uint256 amount
     ) external payable onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
         shares = _depositIntoFundingPool(msg.sender, FundingPool, amount);
-    }
-
-    function depositIntoFundingPoolWithSignature(
-        IFundingPoool FundingPool,
-        uint256 amount,
-        address staker,
-        uint256 expiry,
-        bytes memory signature
-    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
-        require(expiry >= block.timestamp, "FundingPoolManager.depositIntoFundingPoolWithSignature: signature expired");
-
-        uint256 nonce = nonces[staker];
-        bytes32 structHash = keccak256(abi.encode(DEPOSIT_TYPEHASH, FundingPool, amount, nonce, expiry));
-        unchecked {
-            nonces[staker] = nonce + 1;
-        }
-        bytes32 digestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), structHash));
-
-        EIP1271SignatureUtils.checkSignature_EIP1271(staker, digestHash, signature);
-
-        shares = _depositIntoFundingPool(staker, FundingPool, amount);
     }
 
     function removeShares(
@@ -282,7 +260,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     }
 
     function _calculateDomainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("EigenLayer")), block.chainid, address(this)));
+        return keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("ShadowX")), block.chainid, address(this)));
     }
 
     function calculateWithdrawalRoot(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) public pure returns (bytes32) {

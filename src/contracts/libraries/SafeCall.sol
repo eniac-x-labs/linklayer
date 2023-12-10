@@ -11,7 +11,7 @@ library SafeCall {
         bool _success;
         assembly {
             _success := call(
-                _gas, // gas
+                _gas, // gas Gaonxifacai
                 _target, // recipient
                 _value, // ether value
                 0, // inloc

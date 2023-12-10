@@ -10,9 +10,7 @@ import "./IFundingPooolManager.sol";
 interface IDelegationManager is ISignatureUtils {
     struct OperatorDetails {
         address earningsReceiver;
-
         address delegationApprover;
-
         uint32 stakerOptOutWindowBlocks;
     }
 
@@ -172,7 +170,6 @@ interface IDelegationManager is ISignatureUtils {
     function STAKER_DELEGATION_TYPEHASH() external view returns (bytes32);
 
     function DELEGATION_APPROVAL_TYPEHASH() external view returns (bytes32);
-
 
     function domainSeparator() external view returns (bytes32);
 

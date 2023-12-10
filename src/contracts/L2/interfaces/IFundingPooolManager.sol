@@ -17,14 +17,6 @@ interface IFundingPooolManager {
 
     function depositIntoFundingPool(IFundingPoool FundingPool, uint256 amount) external returns (uint256 shares);
 
-    function depositIntoFundingPoolWithSignature(
-        IFundingPoool FundingPool,
-        uint256 amount,
-        address staker,
-        uint256 expiry,
-        bytes memory signature
-    ) external returns (uint256 shares);
-
     function removeShares(address staker, IFundingPoool FundingPool, uint256 shares) external;
 
     function addShares(address staker, IFundingPoool FundingPool, uint256 shares) external;
