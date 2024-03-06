@@ -4,8 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../src/contracts/L1/core/DelegationManager.sol";
-import "../src/contracts/L1/core/StrategyManager.sol";
+import "../src/contracts/L2/core/DelegationManager.sol";
 import "../src/contracts/access/PauserRegistry.sol";
 
 import "../src/test/mocks/EmptyContract.sol";
@@ -17,7 +16,6 @@ import "forge-std/Script.sol";
 contract PrivacyContractsDeployer is Script {
     ProxyAdmin public savourTsProxyAdmin;
     DelegationManager public delegation;
-    StrategyManager public strategy;
     EmptyContract public emptyContract;
     PauserRegistry public savourPcPauserReg;
     address[] pausers;

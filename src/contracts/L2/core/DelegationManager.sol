@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import "../interfaces/IFundingPooolManager.sol";
 import "../interfaces/IDelegationManager.sol";
 import "../interfaces/ISlasher.sol";
 import "../../access/interface/IPauserRegistry.sol";
+import "../../access/Pausable.sol";
+import "../../libraries/EIP1271SignatureUtils.sol";
+
 
 
 contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDelegationManager, ReentrancyGuardUpgradeable {
@@ -195,7 +199,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         bytes32[] memory withdrawalRoots = new bytes32[](queuedWithdrawalParams.length);
 
         for (uint256 i = 0; i < queuedWithdrawalParams.length; i++) {
-            require(queuedWithdrawalParams[i].pools.length == queuedWithdrawalParams[i].shares.length, "DelegationManager.queueWithdrawal: input length mismatch");
+            require(queuedWithdrawalParams[i].fundingPools.length == queuedWithdrawalParams[i].shares.length, "DelegationManager.queueWithdrawal: input length mismatch");
             require(queuedWithdrawalParams[i].withdrawer != address(0), "DelegationManager.queueWithdrawal: must provide valid withdrawal address");
 
             address operator = delegatedTo[msg.sender];
@@ -204,7 +208,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
                 staker: msg.sender,
                 operator: operator,
                 withdrawer: queuedWithdrawalParams[i].withdrawer,
-                pools: queuedWithdrawalParams[i].pools,
+                pools: queuedWithdrawalParams[i].fundingPools,
                 shares: queuedWithdrawalParams[i].shares
             });
         }
@@ -236,7 +240,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         for(uint256 i = 0; i < withdrawalsToMigrate.length;) {
             IFundingPooolManager.DeprecatedStruct_QueuedWithdrawal memory withdrawalToMigrate = withdrawalsToMigrate[i];
 
-            (bool isDeleted, bytes32 oldWithdrawalRoot) = strategyManager.migrateQueuedWithdrawal(withdrawalToMigrate);
+            (bool isDeleted, bytes32 oldWithdrawalRoot) = fundingPoolManager.migrateQueuedWithdrawal(withdrawalToMigrate);
             if (isDeleted) {
                 address staker = withdrawalToMigrate.staker;
                 uint256 nonce = cumulativeWithdrawalsQueued[staker];
@@ -248,7 +252,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
                     withdrawer: withdrawalToMigrate.withdrawerAndNonce.withdrawer,
                     nonce: nonce,
                     startBlock: withdrawalToMigrate.withdrawalStartBlock,
-                    pools: withdrawalToMigrate.pools,
+                    pools: withdrawalToMigrate.fundingPools,
                     shares: withdrawalToMigrate.shares
                 });
 
@@ -271,7 +275,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         address staker,
         IFundingPoool strategy,
         uint256 shares
-    ) external onlyStrategyManagerOrEigenPodManager {
+    ) external onlyFundingPoolManager {
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
 
@@ -285,7 +289,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         address staker,
         IFundingPoool strategy,
         uint256 shares
-    ) external onlyStrategyManagerOrEigenPodManager {
+    ) external onlyFundingPoolManager {
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
 
@@ -377,7 +381,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
     function _completeQueuedWithdrawal(
         Withdrawal calldata withdrawal,
         IERC20[] calldata tokens,
-        uint256
+        uint256,
         bool receiveAsTokens
     ) internal {
         bytes32 withdrawalRoot = calculateWithdrawalRoot(withdrawal);
@@ -399,7 +403,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
 
         if (receiveAsTokens) {
             require(
-                tokens.length == withdrawal.pools.length,
+                tokens.length == withdrawal.fundingPools.length,
                 "DelegationManager.completeQueuedAction: input length mismatch"
             );
         }
@@ -407,11 +411,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         delete pendingWithdrawals[withdrawalRoot];
 
         if (receiveAsTokens) {
-            for (uint256 i = 0; i < withdrawal.pools.length; ) {
+            for (uint256 i = 0; i < withdrawal.fundingPools.length; ) {
                 _withdrawSharesAsTokens({
                     staker: withdrawal.staker,
                     withdrawer: msg.sender,
-                    strategy: withdrawal.pools[i],
+                    strategy: withdrawal.fundingPools[i],
                     shares: withdrawal.shares[i],
                     token: tokens[i]
                 });
@@ -419,10 +423,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
             }
         } else {
             address currentOperator = delegatedTo[msg.sender];
-            for (uint256 i = 0; i < withdrawal.pools.length; ) {
-                if (withdrawal.pools[i] == beaconChainETHStrategy) {
+            for (uint256 i = 0; i < withdrawal.fundingPools.length; ) {
+                if (withdrawal.fundingPools[i] == beaconChainETHPool) {
                     address staker = withdrawal.staker;
-                    uint256 increaseInDelegateableShares = eigenPodManager.addShares({
+                    uint256 increaseInDelegateableShares = fundingPoolManager.addShares({
                         podOwner: staker,
                         shares: withdrawal.shares[i]
                     });
@@ -431,19 +435,19 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
                         _increaseOperatorShares({
                             operator: podOwnerOperator,
                             staker: staker,
-                            strategy: withdrawal.pools[i],
+                            strategy: withdrawal.fundingPools[i],
                             shares: increaseInDelegateableShares
                         });
 
                         _pushOperatorStakeUpdate(podOwnerOperator);
                     }
                 } else {
-                    strategyManager.addShares(msg.sender, withdrawal.pools[i], withdrawal.shares[i]);
+                    fundingPoolManager.addShares(msg.sender, withdrawal.fundingPools[i], withdrawal.shares[i]);
                     if (currentOperator != address(0)) {
                         _increaseOperatorShares({
                             operator: currentOperator,
                             staker: msg.sender,
-                            strategy: withdrawal.pools[i],
+                            strategy: withdrawal.fundingPools[i],
                             shares: withdrawal.shares[i]
                         });
                     }
@@ -494,10 +498,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
                 });
             }
 
-            if (pools[i] == beaconChainETHStrategy) {
-                eigenPodManager.removeShares(staker, shares[i]);
+            if (pools[i] == beaconChainETHPool) {
+                fundingPoolManager.removeShares(staker, shares[i]);
             } else {
-                strategyManager.removeShares(staker, pools[i], shares[i]);
+                fundingPoolManager.removeShares(staker, pools[i], shares[i]);
             }
 
             unchecked { ++i; }
@@ -529,14 +533,14 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
     }
 
     function _withdrawSharesAsTokens(address staker, address withdrawer, IFundingPoool strategy, uint256 shares, IERC20 token) internal {
-        if (strategy == beaconChainETHStrategy) {
-            eigenPodManager.withdrawSharesAsTokens({
+        if (strategy == beaconChainETHPool) {
+            fundingPoolManager.withdrawSharesAsTokens({
                 podOwner: staker,
                 destination: withdrawer,
                 shares: shares
             });
         } else {
-            strategyManager.withdrawSharesAsTokens(withdrawer, strategy, shares, token);
+            fundingPoolManager.withdrawSharesAsTokens(withdrawer, strategy, shares, token);
         }
     }
 
@@ -573,34 +577,34 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
     }
 
     function getDelegatableShares(address staker) public view returns (IFundingPoool[] memory, uint256[] memory) {
-        int256 podShares = eigenPodManager.podOwnerShares(staker);
-        (IFundingPoool[] memory strategyManagerStrats, uint256[] memory strategyManagerShares)
-        = strategyManager.getDeposits(staker);
+        int256 podShares = fundingPoolManager.podOwnerShares(staker);
+        (IFundingPoool[] memory fundingPoolManagerStrats, uint256[] memory fundingPoolManagerShares)
+        = fundingPoolManager.getDeposits(staker);
 
         if (podShares <= 0) {
-            return (strategyManagerStrats, strategyManagerShares);
+            return (fundingPoolManagerStrats, fundingPoolManagerShares);
         }
 
         IFundingPoool[] memory pools;
         uint256[] memory shares;
 
-        if (strategyManagerStrats.length == 0) {
+        if (fundingPoolManagerStrats.length == 0) {
             pools = new IFundingPoool[](1);
             shares = new uint256[](1);
-            pools[0] = beaconChainETHStrategy;
+            pools[0] = beaconChainETHPool;
             shares[0] = uint256(podShares);
         } else {
-            pools = new IFundingPoool[](strategyManagerStrats.length + 1);
+            pools = new IFundingPoool[](fundingPoolManagerStrats.length + 1);
             shares = new uint256[](pools.length);
 
-            for (uint256 i = 0; i < strategyManagerStrats.length; ) {
-                pools[i] = strategyManagerStrats[i];
-                shares[i] = strategyManagerShares[i];
+            for (uint256 i = 0; i < fundingPoolManagerStrats.length; ) {
+                pools[i] = fundingPoolManagerStrats[i];
+                shares[i] = fundingPoolManagerShares[i];
 
                 unchecked { ++i; }
             }
 
-            pools[pools.length - 1] = beaconChainETHStrategy;
+            pools[pools.length - 1] = beaconChainETHPool;
             shares[pools.length - 1] = uint256(podShares);
         }
 

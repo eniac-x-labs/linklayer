@@ -23,6 +23,8 @@ interface IFundingPooolManager {
 
     function withdrawSharesAsEths(address recipient, IFundingPoool FundingPool, uint256 shares) external;
 
+    function withdrawSharesAsTokens(address recipient, IFundingPoool FundingPool, uint256 shares, IERC20 token) external;
+
     function stakerFundingPoolShares(address user, IFundingPoool FundingPool) external view returns (uint256 shares);
 
     function getDeposits(address staker) external view returns (IFundingPoool[] memory, uint256[] memory);

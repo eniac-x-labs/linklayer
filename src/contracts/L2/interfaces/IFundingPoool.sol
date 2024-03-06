@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 interface IFundingPoool {
     function deposit(uint256 amount) external payable returns (uint256);
 
-    function withdraw(address recipient, uint256 amountShares) external payable;
+    function withdraw(address recipient, uint256 amountShares) external;
 
     function sharesToStaking(uint256 amountShares) external returns (uint256);
 

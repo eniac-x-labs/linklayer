@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity =0.8.20;
 
 import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "../interfaces/IFundingPooolManager.sol";
-import "../access/Pausable.sol";
+
+import "../../access/Pausable.sol";
+import "../../libraries/SafeCall.sol";
+
+
 
 
 contract FundingPoool is Initializable, Pausable, IFundingPoool {
@@ -39,7 +43,7 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
 
     function deposit(
         uint256 amount
-    ) external payable virtual override onlyWhenNotPaused(PAUSED_DEPOSITS) onlyfoundingPoolManager returns (uint256 newShares) {
+    ) external payable virtual override onlyWhenNotPaused(PAUSED_DEPOSITS) onlyFundingPooolManager returns (uint256 newShares) {
 
         _beforeDeposit(amount);
 
@@ -62,7 +66,7 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
     function withdraw(
         address recipient,
         uint256 amountShares
-    ) external virtual override onlyWhenNotPaused(PAUSED_WITHDRAWALS) onlyfoundingPoolManager {
+    ) external virtual override onlyWhenNotPaused(PAUSED_WITHDRAWALS) onlyFundingPooolManager {
         _beforeWithdrawal(recipient, amountShares);
 
         uint256 priorTotalShares = totalShares;
@@ -111,7 +115,7 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
     }
 
     function stakingToShares(uint256 amountStaking) external view virtual returns (uint256) {
-        return StakingToSharesView(amountStaking);
+        return stakingToSharesView(amountStaking);
     }
 
     function userStakingView(address user) external view virtual returns (uint256) {

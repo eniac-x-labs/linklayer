@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.12;
+pragma solidity =0.8.20;
 
 import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
-import "../access/Pausable.sol";
-import "../libraries/EIP1271SignatureUtils.sol";
-import "../interfaces/IFundingPooolManager.sol";
-import "../libraries/SafeCall.sol";
+import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
+import "../../access/Pausable.sol";
+import "../../libraries/EIP1271SignatureUtils.sol";
+import "../../libraries/SafeCall.sol";
 
-contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable {
+import "../interfaces/IFundingPooolManager.sol";
+
+import "./FundingPoool.sol";
+
+
+contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable, IFundingPooolManager {
     uint8 internal constant PAUSED_DEPOSITS = 0;
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
     bytes32 public constant DEPOSIT_TYPEHASH = keccak256("Deposit(address FundingPool,uint256 amount,uint256 nonce,uint256 expiry)");
@@ -30,11 +34,10 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     mapping(bytes32 => bool) public withdrawalRootPending;
     mapping(address => uint256) internal numWithdrawalsQueued;
     mapping(IFundingPoool => bool) public fundingPoolIsWhitelistedForDeposit;
-    mapping(address => uint256) internal beaconChainETHSharesToDecrementOnWithdrawal;
 
     modifier onlyFundingPoolWhitelister() {
         require(
-            msg.sender == FundingPoolWhitelister,
+            msg.sender == fundingPoolWhitelister,
             "FundingPoolManager.onlyFundingPoolWhitelister: not the FundingPoolWhitelister"
         );
         _;
@@ -42,7 +45,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
 
     modifier onlyFundingPoolsWhitelistedForDeposit(IFundingPoool FundingPool) {
         require(
-            FundingPoolIsWhitelistedForDeposit[FundingPool],
+            fundingPoolIsWhitelistedForDeposit[FundingPool],
             "FundingPoolManager.onlyFundingPoolsWhitelistedForDeposit: FundingPool not whitelisted"
         );
         _;
@@ -56,7 +59,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     constructor(
         IDelegationManager _delegation,
         ISlasher _slasher
-    ) FundingPoolManagerStorage(_delegation, _slasher) {
+    ) FundingPoool(_delegation, _slasher) {
         delegation = _delegation;
         slasher = _slasher;
         _disableInitializers();
@@ -78,7 +81,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     function depositIntoFundingPool(
         IFundingPoool FundingPool,
         uint256 amount
-    ) external payable onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
         shares = _depositIntoFundingPool(msg.sender, FundingPool, amount);
     }
 
@@ -106,6 +109,15 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         FundingPool.withdraw(recipient, shares);
     }
 
+    function withdrawSharesAsTokens(
+        address recipient,
+        IFundingPoool FundingPool,
+        uint256 shares,
+        IERC20 token
+    ) external onlyDelegationManager {
+        FundingPool.withdraw(recipient, token, shares);
+    }
+
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external onlyDelegationManager returns(bool, bytes32) {
         bytes32 existingWithdrawalRoot = calculateWithdrawalRoot(queuedWithdrawal);
         bool isDeleted;
@@ -127,8 +139,8 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         uint256 FundingPoolsToWhitelistLength = FundingPoolsToWhitelist.length;
         for (uint256 i = 0; i < FundingPoolsToWhitelistLength; ) {
 
-            if (!FundingPoolIsWhitelistedForDeposit[FundingPoolsToWhitelist[i]]) {
-                FundingPoolIsWhitelistedForDeposit[FundingPoolsToWhitelist[i]] = true;
+            if (!fundingPoolIsWhitelistedForDeposit[FundingPoolsToWhitelist[i]]) {
+                fundingPoolIsWhitelistedForDeposit[FundingPoolsToWhitelist[i]] = true;
                 emit FundingPoolAddedToDepositWhitelist(FundingPoolsToWhitelist[i]);
             }
             unchecked {
@@ -143,8 +155,8 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         uint256 FundingPoolsToRemoveFromWhitelistLength = FundingPoolsToRemoveFromWhitelist.length;
         for (uint256 i = 0; i < FundingPoolsToRemoveFromWhitelistLength; ) {
 
-            if (FundingPoolIsWhitelistedForDeposit[FundingPoolsToRemoveFromWhitelist[i]]) {
-                FundingPoolIsWhitelistedForDeposit[FundingPoolsToRemoveFromWhitelist[i]] = false;
+            if (fundingPoolIsWhitelistedForDeposit[FundingPoolsToRemoveFromWhitelist[i]]) {
+                fundingPoolIsWhitelistedForDeposit[FundingPoolsToRemoveFromWhitelist[i]] = false;
                 emit FundingPoolRemovedFromDepositWhitelist(FundingPoolsToRemoveFromWhitelist[i]);
             }
             unchecked {
@@ -174,7 +186,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         IFundingPoool FundingPool,
         uint256 amount
     ) internal onlyFundingPoolsWhitelistedForDeposit(FundingPool) returns (uint256 shares) {
-        bool success = SafeCall.call(address(FundingPool), gasleft(), _amount, hex"");
+        bool success = SafeCall.call(address(FundingPool), gasleft(), amount, hex"");
 
         if (success) {
             shares = FundingPool.deposit(amount);
@@ -230,8 +242,8 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
     }
 
     function _setFundingPoolWhitelister(address newFundingPoolWhitelister) internal {
-        emit FundingPoolWhitelisterChanged(FundingPoolWhitelister, newFundingPoolWhitelister);
-        FundingPoolWhitelister = newFundingPoolWhitelister;
+        fundingPoolWhitelister = newFundingPoolWhitelister;
+        emit FundingPoolWhitelisterChanged(fundingPoolWhitelister, newFundingPoolWhitelister);
     }
 
     function getDeposits(address staker) external view returns (IFundingPoool[] memory, uint256[] memory) {
