@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IFundingPoool.sol";
 import "./ISignatureUtils.sol";
 import "./IStakeRegistryStub.sol";
@@ -36,12 +37,12 @@ interface IDelegationManager is ISignatureUtils {
         address withdrawer;
         uint256 nonce;
         uint32 startBlock;
-        IFundingPoool[] strategies;
+        IFundingPoool[] fundingPools;
         uint256[] shares;
     }
 
     struct QueuedWithdrawalParams {
-        IFundingPoool[] strategies;
+        IFundingPoool[] fundingPools;
         uint256[] shares;
         address withdrawer;
     }
@@ -177,5 +178,5 @@ interface IDelegationManager is ISignatureUtils {
 
     function calculateWithdrawalRoot(Withdrawal memory withdrawal) external pure returns (bytes32);
 
-    function migrateQueuedWithdrawals(IStrategyManager.DeprecatedStruct_QueuedWithdrawal[] memory withdrawalsToQueue) external;
+    function migrateQueuedWithdrawals(IFundingPooolManager.DeprecatedStruct_QueuedWithdrawal[] memory withdrawalsToMigrate) external;
 }

@@ -23,6 +23,8 @@ interface IFundingPooolManager {
 
     function withdrawSharesAsEths(address recipient, IFundingPoool FundingPool, uint256 shares) external;
 
+    function withdrawSharesAsTokens(address recipient, IFundingPoool FundingPool, uint256 shares, IERC20 token) external;
+
     function stakerFundingPoolShares(address user, IFundingPoool FundingPool) external view returns (uint256 shares);
 
     function getDeposits(address staker) external view returns (IFundingPoool[] memory, uint256[] memory);
@@ -37,7 +39,7 @@ interface IFundingPooolManager {
 
     function slasher() external view returns (ISlasher);
 
-    function FundingPoolWhitelister() external view returns (address);
+    function fundingPoolWhitelister() external view returns (address);
 
     struct DeprecatedStruct_WithdrawerAndNonce {
         address withdrawer;
