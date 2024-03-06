@@ -39,7 +39,7 @@ interface IFundingPooolManager {
 
     function slasher() external view returns (ISlasher);
 
-    function FundingPoolWhitelister() external view returns (address);
+    function fundingPoolWhitelister() external view returns (address);
 
     struct DeprecatedStruct_WithdrawerAndNonce {
         address withdrawer;

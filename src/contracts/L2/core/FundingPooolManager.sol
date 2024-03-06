@@ -13,7 +13,7 @@ import "../interfaces/IFundingPooolManager.sol";
 import "./FundingPoool.sol";
 
 
-contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable, IFundingPooolManager {
+contract FundingPooolManager is IFundingPooolManager, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, Pausable {
     uint8 internal constant PAUSED_DEPOSITS = 0;
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
     bytes32 public constant DEPOSIT_TYPEHASH = keccak256("Deposit(address FundingPool,uint256 amount,uint256 nonce,uint256 expiry)");
@@ -56,10 +56,9 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         _;
     }
 
-    constructor(
-        IDelegationManager _delegation,
-        ISlasher _slasher
-    ) FundingPoool(_delegation, _slasher) {
+    constructor(IFundingPooolManager _foundingPoolManager, IDelegationManager _delegation, ISlasher _slasher)
+        // FundingPoool(_foundingPoolManager)
+    {
         delegation = _delegation;
         slasher = _slasher;
         _disableInitializers();
@@ -115,7 +114,7 @@ contract FundingPooolManager is Initializable, OwnableUpgradeable, ReentrancyGua
         uint256 shares,
         IERC20 token
     ) external onlyDelegationManager {
-        FundingPool.withdraw(recipient, token, shares);
+        FundingPool.withdraw(recipient, shares);
     }
 
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external onlyDelegationManager returns(bool, bytes32) {

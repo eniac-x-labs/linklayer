@@ -36,10 +36,10 @@ contract PrivacyContractsDeployer is Script {
             )
         );
 
-        DelegationManager delegationImplementation = new DelegationManager();
+        // DelegationManager delegationImplementation = new DelegationManager(IFundingPooolManager(msg.sender), msg.sender);
 
         vm.writeFile("data/delegation.addr", vm.toString(address(delegation)));
-        vm.writeFile("data/delegationImplementation.addr", vm.toString(address(delegationImplementation)));
+        // vm.writeFile("data/delegationImplementation.addr", vm.toString(address(delegationImplementation)));
 
         vm.stopBroadcast();
     }

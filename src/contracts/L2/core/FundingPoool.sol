@@ -127,7 +127,8 @@ contract FundingPoool is Initializable, Pausable, IFundingPoool {
     }
 
     function shares(address user) public view virtual returns (uint256) {
-        return foundingPoolManager.stakerStrategyShares(user, IFundingPoool(address(this)));
+        return 10;
+        // return foundingPoolManager.stakerStrategyShares(user, IFundingPoool(address(this)));
     }
 
     // slither-disable-next-line dead-code

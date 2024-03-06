@@ -252,7 +252,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
                     withdrawer: withdrawalToMigrate.withdrawerAndNonce.withdrawer,
                     nonce: nonce,
                     startBlock: withdrawalToMigrate.withdrawalStartBlock,
-                    pools: withdrawalToMigrate.fundingPools,
+                    fundingPools: withdrawalToMigrate.fundingPools,
                     shares: withdrawalToMigrate.shares
                 });
 
@@ -412,13 +412,13 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
 
         if (receiveAsTokens) {
             for (uint256 i = 0; i < withdrawal.fundingPools.length; ) {
-                _withdrawSharesAsTokens({
-                    staker: withdrawal.staker,
-                    withdrawer: msg.sender,
-                    strategy: withdrawal.fundingPools[i],
-                    shares: withdrawal.shares[i],
-                    token: tokens[i]
-                });
+                _withdrawSharesAsTokens(
+                    withdrawal.staker,
+                    msg.sender,
+                    withdrawal.fundingPools[i],
+                    withdrawal.shares[i],
+                    tokens[i]
+                );
                 unchecked { ++i; }
             }
         } else {
@@ -426,10 +426,12 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
             for (uint256 i = 0; i < withdrawal.fundingPools.length; ) {
                 if (withdrawal.fundingPools[i] == beaconChainETHPool) {
                     address staker = withdrawal.staker;
-                    uint256 increaseInDelegateableShares = fundingPoolManager.addShares({
-                        podOwner: staker,
-                        shares: withdrawal.shares[i]
-                    });
+                    uint256 increaseInDelegateableShares = 1;
+//                    uint256 increaseInDelegateableShares = fundingPoolManager.addShares(
+//                        staker,
+//                        withdrawal.fundingPools[i],
+//                        withdrawal.shares[i]
+//                    );
                     address podOwnerOperator = delegatedTo[staker];
                     if (podOwnerOperator != address(0)) {
                         _increaseOperatorShares({
@@ -499,7 +501,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
             }
 
             if (pools[i] == beaconChainETHPool) {
-                fundingPoolManager.removeShares(staker, shares[i]);
+                fundingPoolManager.removeShares(staker, pools[i], shares[i]);
             } else {
                 fundingPoolManager.removeShares(staker, pools[i], shares[i]);
             }
@@ -520,7 +522,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
             withdrawer: withdrawer,
             nonce: nonce,
             startBlock: uint32(block.number),
-            pools: pools,
+            fundingPools: pools,
             shares: shares
         });
 
@@ -532,15 +534,11 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
         return withdrawalRoot;
     }
 
-    function _withdrawSharesAsTokens(address staker, address withdrawer, IFundingPoool strategy, uint256 shares, IERC20 token) internal {
-        if (strategy == beaconChainETHPool) {
-            fundingPoolManager.withdrawSharesAsTokens({
-                podOwner: staker,
-                destination: withdrawer,
-                shares: shares
-            });
+    function _withdrawSharesAsTokens(address staker, address withdrawer, IFundingPoool fundingPool, uint256 shares, IERC20 token) internal {
+        if (fundingPool == beaconChainETHPool) {
+            fundingPoolManager.withdrawSharesAsTokens(withdrawer, fundingPool, shares, token);
         } else {
-            fundingPoolManager.withdrawSharesAsTokens(withdrawer, strategy, shares, token);
+            fundingPoolManager.withdrawSharesAsTokens(withdrawer, fundingPool, shares, token);
         }
     }
 
@@ -577,7 +575,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, IDele
     }
 
     function getDelegatableShares(address staker) public view returns (IFundingPoool[] memory, uint256[] memory) {
-        int256 podShares = fundingPoolManager.podOwnerShares(staker);
+        // int256 podShares = fundingPoolManager.podOwnerShares(staker);
+        int256 podShares = 10;
         (IFundingPoool[] memory fundingPoolManagerStrats, uint256[] memory fundingPoolManagerShares)
         = fundingPoolManager.getDeposits(staker);
 
