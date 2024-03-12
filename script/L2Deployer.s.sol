@@ -4,10 +4,10 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../src/contracts/L1/core/TreasureManager.sol";
-import "../src/contracts/access/PauserRegistry.sol";
+import "@/contracts/L1/core/TreasureManager.sol";
+import "@/contracts/access/PauserRegistry.sol";
 
-import "../src/test/mocks/EmptyContract.sol";
+import "@/test/mocks/EmptyContract.sol";
 
 import "forge-std/Script.sol";
 

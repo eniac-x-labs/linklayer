@@ -4,10 +4,11 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../src/contracts/L2/core/DelegationManager.sol";
-import "../src/contracts/access/PauserRegistry.sol";
+// import "@/contracts/L1/core/DelegationManager.sol";
+// import "@/contracts/L1/core/StrategyManager.sol";
+import "@/contracts/access/PauserRegistry.sol";
 
-import "../src/test/mocks/EmptyContract.sol";
+import "@/test/mocks/EmptyContract.sol";
 
 import "forge-std/Script.sol";
 
@@ -15,7 +16,8 @@ import "forge-std/Script.sol";
 // forge script script/L1Deployer.s.sol:TreasureDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
 contract PrivacyContractsDeployer is Script {
     ProxyAdmin public savourTsProxyAdmin;
-    DelegationManager public delegation;
+    // DelegationManager public delegation;
+    // StrategyManager public strategy;
     EmptyContract public emptyContract;
     PauserRegistry public savourPcPauserReg;
     address[] pausers;
@@ -31,14 +33,14 @@ contract PrivacyContractsDeployer is Script {
 
         emptyContract = new EmptyContract();
 
-        delegation = DelegationManager(
-            address(new TransparentUpgradeableProxy(address(emptyContract), address(savourTsProxyAdmin), "")
-            )
-        );
+        // delegation = DelegationManager(
+        //     address(new TransparentUpgradeableProxy(address(emptyContract), address(savourTsProxyAdmin), "")
+        //     )
+        // );
 
-        // DelegationManager delegationImplementation = new DelegationManager(IFundingPooolManager(msg.sender), msg.sender);
+        // DelegationManager delegationImplementation = new DelegationManager();
 
-        vm.writeFile("data/delegation.addr", vm.toString(address(delegation)));
+        // vm.writeFile("data/delegation.addr", vm.toString(address(delegation)));
         // vm.writeFile("data/delegationImplementation.addr", vm.toString(address(delegationImplementation)));
 
         vm.stopBroadcast();

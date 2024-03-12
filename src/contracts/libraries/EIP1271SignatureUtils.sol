@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity =0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -10,7 +10,7 @@ library EIP1271SignatureUtils {
     bytes4 internal constant EIP1271_MAGICVALUE = 0x1626ba7e;
 
     function checkSignature_EIP1271(address signer, bytes32 digestHash, bytes memory signature) internal view {
-        if (signer != tx.origin) {
+        if (_isContract(signer)) {
             require(
                 IERC1271(signer).isValidSignature(digestHash, signature) == EIP1271_MAGICVALUE,
                 "EIP1271SignatureUtils.checkSignature_EIP1271: ERC1271 signature verification failed"
@@ -22,4 +22,5 @@ library EIP1271SignatureUtils {
             );
         }
     }
+    function _isContract(address account) internal view returns (bool) { return account.code.length > 0; }
 }
