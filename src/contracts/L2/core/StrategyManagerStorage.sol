@@ -15,6 +15,8 @@ abstract contract StrategyManagerStorage is IStrategyManager {
 
     uint8 internal constant MAX_STAKER_STRATEGY_LIST_LENGTH = 32;
 
+    address constant ETHAddress = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     // system contracts
     IDelegationManager public immutable delegation;
     ISlashManager public immutable slasher;

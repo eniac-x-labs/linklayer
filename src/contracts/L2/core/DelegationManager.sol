@@ -24,8 +24,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     uint256 public constant MAX_STAKER_OPT_OUT_WINDOW_BLOCKS = (180 days) / 12;
 
-    IStrategy public constant beaconChainETHStrategy = IStrategy(0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0);
-
     modifier onlyStrategyManager() {
         require(
             msg.sender == address(strategyManager),
@@ -93,7 +91,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         SignatureWithExpiry memory approverSignatureAndExpiry,
         bytes32 approverSalt
     ) external {
-        // go through the internal delegation flow, checking the `approverSignatureAndExpiry` if applicable
         _delegate(msg.sender, operator, approverSignatureAndExpiry, approverSalt);
     }
 
@@ -212,12 +209,9 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     function migrateQueuedWithdrawals(IStrategyManager.DeprecatedStruct_QueuedWithdrawal[] memory withdrawalsToMigrate) external {
         for(uint256 i = 0; i < withdrawalsToMigrate.length;) {
             IStrategyManager.DeprecatedStruct_QueuedWithdrawal memory withdrawalToMigrate = withdrawalsToMigrate[i];
-            // Delete withdrawal root from strateyManager
             (bool isDeleted, bytes32 oldWithdrawalRoot) = strategyManager.migrateQueuedWithdrawal(withdrawalToMigrate);
-            // If old storage is deleted from strategyManager
             if (isDeleted) {
                 address staker = withdrawalToMigrate.staker;
-                // Create queue entry and increment withdrawal nonce
                 uint256 nonce = cumulativeWithdrawalsQueued[staker];
                 cumulativeWithdrawalsQueued[staker]++;
 
@@ -230,15 +224,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                     strategies: withdrawalToMigrate.strategies,
                     shares: withdrawalToMigrate.shares
                 });
-
-                // create the new storage
                 bytes32 newRoot = calculateWithdrawalRoot(migratedWithdrawal);
-                // safety check to ensure that root doesn't exist already -- this should *never* be hit
                 require(!pendingWithdrawals[newRoot], "DelegationManager.migrateQueuedWithdrawals: withdrawal already exists");
                 pendingWithdrawals[newRoot] = true;
-
                 emit WithdrawalQueued(newRoot, migratedWithdrawal);
-
                 emit WithdrawalMigrated(oldWithdrawalRoot, newRoot);
             }
             unchecked {
@@ -253,11 +242,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         IStrategy strategy,
         uint256 shares
     ) external onlyStrategyManager {
-        // if the staker is delegated to an operator
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
-
-            // add strategy shares to delegate's shares
             _increaseOperatorShares({operator: operator, staker: staker, strategy: strategy, shares: shares});
         }
     }
@@ -267,11 +253,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         IStrategy strategy,
         uint256 shares
     ) external onlyStrategyManager {
-        // if the staker is delegated to an operator
         if (isDelegated(staker)) {
             address operator = delegatedTo[staker];
-
-            // subtract strategy shares from delegate's shares
             _decreaseOperatorShares({
                 operator: operator,
                 staker: staker,
@@ -417,7 +400,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 );
 
                 _withdrawSharesAsTokens({
-                    staker: withdrawal.staker,
                     withdrawer: msg.sender,
                     strategy: withdrawal.strategies[i],
                     shares: withdrawal.shares[i],
@@ -508,7 +490,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         return withdrawalRoot;
     }
 
-    function _withdrawSharesAsTokens(address staker, address withdrawer, IStrategy strategy, uint256 shares, IERC20 token) internal {
+    function _withdrawSharesAsTokens(address withdrawer, IStrategy strategy, uint256 shares, IERC20 token) internal {
         strategyManager.withdrawSharesAsTokens(withdrawer, strategy, shares, token);
     }
 

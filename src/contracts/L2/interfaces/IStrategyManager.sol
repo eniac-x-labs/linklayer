@@ -17,11 +17,21 @@ interface IStrategyManager {
 
     event StrategyRemovedFromDepositWhitelist(IStrategy strategy);
 
-    function depositIntoStrategy(IStrategy strategy, IERC20 token, uint256 amount) external returns (uint256 shares);
+    function depositWETHIntoStrategy(IStrategy strategy, IERC20 token, uint256 amount) external returns (uint256 shares);
 
-    function depositIntoStrategyWithSignature(
+    function depositETHIntoStrategy(IStrategy strategy, uint256 amount) external returns (uint256 shares);
+
+    function depositWETHIntoStrategyWithSignature(
         IStrategy strategy,
         IERC20 token,
+        uint256 amount,
+        address staker,
+        uint256 expiry,
+        bytes memory signature
+    ) external returns (uint256 shares);
+
+    function depositETHIntoStrategyWithSignature(
+        IStrategy strategy,
         uint256 amount,
         address staker,
         uint256 expiry,

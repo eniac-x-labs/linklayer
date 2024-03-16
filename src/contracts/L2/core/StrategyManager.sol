@@ -68,15 +68,22 @@ contract StrategyManager is
         _setStrategyWhitelister(initialStrategyWhitelister);
     }
 
-    function depositIntoStrategy(
+    function depositWETHIntoStrategy(
         IStrategy strategy,
         IERC20 token,
         uint256 amount
     ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
-        shares = _depositIntoStrategy(msg.sender, strategy, token, amount);
+        shares = _depositWETHIntoStrategy(msg.sender, strategy, token, amount);
     }
 
-    function depositIntoStrategyWithSignature(
+    function depositETHIntoStrategy(
+        IStrategy strategy,
+        uint256 amount
+    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+        shares = _depositETHIntoStrategy(msg.sender, strategy, amount);
+    }
+
+    function depositWETHIntoStrategyWithSignature(
         IStrategy strategy,
         IERC20 token,
         uint256 amount,
@@ -99,7 +106,32 @@ contract StrategyManager is
 
         EIP1271SignatureUtils.checkSignature_EIP1271(staker, digestHash, signature);
 
-        shares = _depositIntoStrategy(staker, strategy, token, amount);
+        shares = _depositWETHIntoStrategy(staker, strategy, token, amount);
+    }
+
+    function depositETHIntoStrategyWithSignature(
+        IStrategy strategy,
+        uint256 amount,
+        address staker,
+        uint256 expiry,
+        bytes memory signature
+    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+        require(
+            !thirdPartyTransfersForbidden[strategy],
+            "StrategyManager.depositIntoStrategyWithSignature: third transfers disabled"
+        );
+        require(expiry >= block.timestamp, "StrategyManager.depositIntoStrategyWithSignature: signature expired");
+        uint256 nonce = nonces[staker];
+        bytes32 structHash = keccak256(abi.encode(DEPOSIT_TYPEHASH, staker, strategy, amount, nonce, expiry));
+        unchecked {
+            nonces[staker] = nonce + 1;
+        }
+
+        bytes32 digestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), structHash));
+
+        EIP1271SignatureUtils.checkSignature_EIP1271(staker, digestHash, signature);
+
+        shares = _depositETHIntoStrategy(staker, strategy, amount);
     }
 
     function removeShares(
@@ -204,7 +236,7 @@ contract StrategyManager is
         emit Deposit(staker, token, strategy, shares);
     }
 
-    function _depositIntoStrategy(
+    function _depositWETHIntoStrategy(
         address staker,
         IStrategy strategy,
         IERC20 token,
@@ -215,6 +247,21 @@ contract StrategyManager is
         shares = strategy.deposit(token, amount);
 
         _addShares(staker, token, strategy, shares);
+
+        delegation.increaseDelegatedShares(staker, strategy, shares);
+
+        return shares;
+    }
+
+    function _depositETHIntoStrategy(
+        address staker,
+        IStrategy strategy,
+        uint256 amount
+    ) internal onlyStrategiesWhitelistedForDeposit(strategy) returns (uint256 shares) {
+
+        payable(address(strategy)).transfer(amount);
+
+        _addShares(staker, IERC20(ETHAddress), strategy, shares);
 
         delegation.increaseDelegatedShares(staker, strategy, shares);
 
