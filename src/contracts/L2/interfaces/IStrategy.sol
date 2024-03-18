@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 interface IStrategy {
-
     function deposit(IERC20 token, uint256 amount) external returns (uint256);
 
     function withdraw(address recipient, IERC20 token, uint256 amountShares) external;
