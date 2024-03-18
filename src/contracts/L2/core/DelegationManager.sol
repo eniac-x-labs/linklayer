@@ -63,7 +63,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     *******************************************************************************/
     function registerAsOperator(
         OperatorDetails calldata registeringOperatorDetails,
-        string calldata metadataURI
+        string calldata nodeUrl
     ) external {
         require(
             _operatorDetails[msg.sender].earningsReceiver == address(0),
@@ -73,7 +73,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         SignatureWithExpiry memory emptySignatureAndExpiry;
         _delegate(msg.sender, msg.sender, emptySignatureAndExpiry, bytes32(0));
         emit OperatorRegistered(msg.sender, registeringOperatorDetails);
-        emit OperatorMetadataURIUpdated(msg.sender, metadataURI);
+        emit OperatorNodeUrlUpdated(msg.sender, nodeUrl);
     }
 
     function modifyOperatorDetails(OperatorDetails calldata newOperatorDetails) external {
@@ -81,9 +81,9 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         _setOperatorDetails(msg.sender, newOperatorDetails);
     }
 
-    function updateOperatorMetadataURI(string calldata metadataURI) external {
-        require(isOperator(msg.sender), "DelegationManager.updateOperatorMetadataURI: caller must be an operator");
-        emit OperatorMetadataURIUpdated(msg.sender, metadataURI);
+    function updateOperatorNodeUrl(string calldata nodeUrl) external {
+        require(isOperator(msg.sender), "DelegationManager.updateOperatorNodeUrl: caller must be an operator");
+        emit OperatorNodeUrlUpdated(msg.sender, nodeUrl);
     }
 
     function delegateTo(
@@ -304,27 +304,20 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         require(!isDelegated(staker), "DelegationManager._delegate: staker is already actively delegated");
         require(isOperator(operator), "DelegationManager._delegate: operator is not registered in DappLink");
 
-        // fetch the operator's `delegationApprover` address and store it in memory in case we need to use it multiple times
         address _delegationApprover = _operatorDetails[operator].delegationApprover;
-        /**
-         * Check the `_delegationApprover`'s signature, if applicable.
-         * If the `_delegationApprover` is the zero address, then the operator allows all stakers to delegate to them and this verification is skipped.
-         * If the `_delegationApprover` or the `operator` themselves is the caller, then approval is assumed and signature verification is skipped as well.
-         */
+
         if (_delegationApprover != address(0) && msg.sender != _delegationApprover && msg.sender != operator) {
-            // check the signature expiry
             require(
                 approverSignatureAndExpiry.expiry >= block.timestamp,
                 "DelegationManager._delegate: approver signature expired"
             );
-            // check that the salt hasn't been used previously, then mark the salt as spent
+
             require(
                 !delegationApproverSaltIsSpent[_delegationApprover][approverSalt],
                 "DelegationManager._delegate: approverSalt already spent"
             );
             delegationApproverSaltIsSpent[_delegationApprover][approverSalt] = true;
 
-            // calculate the digest hash
             bytes32 approverDigestHash = calculateDelegationApprovalDigestHash(
                 staker,
                 operator,
@@ -333,7 +326,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 approverSignatureAndExpiry.expiry
             );
 
-            // actually check that the signature is valid
             EIP1271SignatureUtils.checkSignature_EIP1271(
                 _delegationApprover,
                 approverDigestHash,
@@ -341,7 +333,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
             );
         }
 
-        // record the delegation relation between the staker and operator, and emit an event
         delegatedTo[staker] = operator;
         emit StakerDelegated(staker, operator);
 

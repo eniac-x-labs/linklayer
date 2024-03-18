@@ -9,6 +9,8 @@ import "../../access/interface/IPauserRegistry.sol";
 import "../../access/Pausable.sol";
 import "./StrategyManagerStorage.sol";
 import "../../libraries/EIP1271SignatureUtils.sol";
+import "../../libraries/ETHAddress.sol";
+
 
 
 contract StrategyManager is
@@ -55,7 +57,6 @@ contract StrategyManager is
     }
 
     // EXTERNAL FUNCTIONS
-
     function initialize(
         address initialOwner,
         address initialStrategyWhitelister,
@@ -261,7 +262,9 @@ contract StrategyManager is
 
         payable(address(strategy)).transfer(amount);
 
-        _addShares(staker, IERC20(ETHAddress), strategy, shares);
+        shares = strategy.deposit(IERC20(ETHAddress.EthAddress), amount);
+
+        _addShares(staker, IERC20(ETHAddress.EthAddress), strategy, shares);
 
         delegation.increaseDelegatedShares(staker, strategy, shares);
 

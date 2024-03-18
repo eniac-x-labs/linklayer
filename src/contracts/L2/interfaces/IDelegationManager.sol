@@ -6,10 +6,21 @@ import "./ISignatureUtils.sol";
 import "./IStrategyManager.sol";
 
 interface IDelegationManager is ISignatureUtils {
+    enum OperatorType {
+        SocialNode,
+        GameNode,
+        MpcNode,
+        DaNode,
+        TradingNode,
+        AiNode,
+        otherNode
+    }
+
     struct OperatorDetails {
         address earningsReceiver;
         address delegationApprover;
         uint32 stakerOptOutWindowBlocks;
+        OperatorType operatorType;
     }
 
     struct StakerDelegation {
@@ -46,7 +57,7 @@ interface IDelegationManager is ISignatureUtils {
 
     event OperatorDetailsModified(address indexed operator, OperatorDetails newOperatorDetails);
 
-    event OperatorMetadataURIUpdated(address indexed operator, string metadataURI);
+    event OperatorNodeUrlUpdated(address indexed operator, string metadataURI);
 
     event OperatorSharesIncreased(address indexed operator, address staker, IStrategy strategy, uint256 shares);
 
@@ -75,7 +86,7 @@ interface IDelegationManager is ISignatureUtils {
 
     function modifyOperatorDetails(OperatorDetails calldata newOperatorDetails) external;
 
-    function updateOperatorMetadataURI(string calldata metadataURI) external;
+    function updateOperatorNodeUrl(string calldata metadataURI) external;
 
     function delegateTo(
         address operator,
