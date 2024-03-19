@@ -354,7 +354,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     function _completeQueuedWithdrawal(
         Withdrawal calldata withdrawal,
         IERC20[] calldata tokens,
-        uint256 /*middlewareTimesIndex*/,
+        uint256,
         bool receiveAsTokens
     ) internal {
         bytes32 withdrawalRoot = calculateWithdrawalRoot(withdrawal);
@@ -426,7 +426,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     }
 
     function _decreaseOperatorShares(address operator, address staker, IStrategy strategy, uint256 shares) internal {
-        // This will revert on underflow, so no check needed
         operatorShares[operator][strategy] -= shares;
         emit OperatorSharesDecreased(operator, staker, strategy, shares);
     }
@@ -458,7 +457,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
             unchecked { ++i; }
         }
 
-        // Create queue entry and increment withdrawal nonce
         uint256 nonce = cumulativeWithdrawalsQueued[staker];
         cumulativeWithdrawalsQueued[staker]++;
 
@@ -474,7 +472,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
         bytes32 withdrawalRoot = calculateWithdrawalRoot(withdrawal);
 
-        // Place withdrawal in queue
         pendingWithdrawals[withdrawalRoot] = true;
 
         emit WithdrawalQueued(withdrawalRoot, withdrawal);
@@ -512,7 +509,6 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
                 "DelegationManager._setStrategyWithdrawalDelayBlocks: _withdrawalDelayBlocks cannot be > MAX_WITHDRAWAL_DELAY_BLOCKS"
             );
 
-            // set the new withdrawal delay blocks
             strategyWithdrawalDelayBlocks[strategy] = newStrategyWithdrawalDelayBlocks;
             emit StrategyWithdrawalDelayBlocksSet(
                 strategy,
@@ -593,9 +589,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         address operator,
         uint256 expiry
     ) external view returns (bytes32) {
-        // fetch the staker's current nonce
         uint256 currentStakerNonce = stakerNonce[staker];
-        // calculate the digest hash
         return calculateStakerDelegationDigestHash(staker, currentStakerNonce, operator, expiry);
     }
 
@@ -605,11 +599,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         address operator,
         uint256 expiry
     ) public view returns (bytes32) {
-        // calculate the struct hash
         bytes32 stakerStructHash = keccak256(
             abi.encode(STAKER_DELEGATION_TYPEHASH, staker, operator, _stakerNonce, expiry)
         );
-        // calculate the digest hash
+
         bytes32 stakerDigestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), stakerStructHash));
         return stakerDigestHash;
     }
@@ -621,11 +614,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         bytes32 approverSalt,
         uint256 expiry
     ) public view returns (bytes32) {
-        // calculate the struct hash
         bytes32 approverStructHash = keccak256(
             abi.encode(DELEGATION_APPROVAL_TYPEHASH, _delegationApprover, staker, operator, approverSalt, expiry)
         );
-        // calculate the digest hash
+
         bytes32 approverDigestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), approverStructHash));
         return approverDigestHash;
     }
