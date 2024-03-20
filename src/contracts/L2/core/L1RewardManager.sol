@@ -6,7 +6,6 @@ import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 import "../interfaces/IStrategyManager.sol";
-import "../interfaces/IStrategy.sol";
 import "../interfaces/IL1RewardManager.sol";
 
 contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
@@ -15,9 +14,14 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
     IStrategyManager public immutable strategyManager;
     IStrategy public immutable strategy;
 
-    constructor(IStrategyManager _strategyManager, IStrategy _strategy){
+    constructor(IStrategyManager _strategyManager){
         strategyManager = _strategyManager;
-        strategy = _strategy;
+    }
+
+    function initialize(
+        address initialOwner
+    ) external initializer {
+        _transferOwnership(initialOwner);
     }
 
     function depositETHRewardTo() external payable returns (bool) {
@@ -27,12 +31,11 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
         return true;
     }
 
-    function claimL1Reward() external payable returns (bool) {
+    function claimL1Reward(IStrategy[] calldata _strategies) external payable returns (bool) {
         uint256 shares = strategy.totalShares();
         uint256 userShares = 0;
-        uint256 strategyLength = strategyManager.stakerStrategyListLength(msg.sender);
-        for (uint256 i = 0; i < strategyLength; i++) {
-            userShares += strategy.shares(msg.sender);
+        for (uint256 i = 0; i < _strategies.length; i++) {
+            userShares += _strategies[i].shares(msg.sender);
         }
         uint256 amountToSend = L1RewardBalance * (userShares / shares);
         payable(msg.sender).transfer(amountToSend);

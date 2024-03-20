@@ -13,6 +13,12 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
     constructor(){
     }
 
+    function initialize(
+        address initialOwner
+    ) external initializer {
+        _transferOwnership(initialOwner);
+    }
+
     function calculateRewards() external returns (uint256) {
         return 0;
     }
