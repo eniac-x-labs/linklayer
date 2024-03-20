@@ -17,5 +17,5 @@ interface IL1RewardManager {
      );
 
     function depositETHRewardTo() external payable returns (bool);
-    function claimL1Reward() external payable returns (bool);
+    function claimL1Reward(IStrategy[] calldata _strategies) external payable returns (bool);
 }
