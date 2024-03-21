@@ -167,7 +167,7 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
         return underlyingToken.balanceOf(address(this)) + address(this).balance;
     }
 
-    function tokenEThBalance() external view virtual returns (uint256) {
+    function tokenETHBalance() external view virtual returns (uint256) {
         return address(this).balance;
     }
 
