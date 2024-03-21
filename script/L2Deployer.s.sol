@@ -43,6 +43,7 @@ contract L2Deployer is Script {
         address unpauser = msg.sender;
         address dappLinkMultisig = msg.sender;
         address admin = msg.sender;
+        address relayer = msg.sender;
 
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
         dappLinkPauserReg = new PauserRegistry(pausers, unpauser);
@@ -99,9 +100,9 @@ contract L2Deployer is Script {
             address WethAddress = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
             IERC20 underlyingToken = IERC20(WethAddress);
 
-            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, dappLinkPauserReg, strategyManager);
-            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, dappLinkPauserReg, strategyManager);
-            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, dappLinkPauserReg, strategyManager);
+            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
+            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
+            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
         }
 
         vm.stopBroadcast();

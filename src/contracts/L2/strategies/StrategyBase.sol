@@ -25,10 +25,17 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
 
     IERC20 public underlyingToken;
 
+    address public relayer;
+
     uint256 public totalShares;
 
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
+        _;
+    }
+
+    modifier onlyRelayer() {
+        require(msg.sender == relayer, "StrategyBase.onlyRelayer");
         _;
     }
 
@@ -38,11 +45,13 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
 
     function initialize(
         IERC20 _underlyingToken,
+        address  _relayer,
         IPauserRegistry _pauserRegistry,
         IStrategyManager _strategyManager
     ) public virtual initializer {
         _initializeStrategyBase(_underlyingToken, _pauserRegistry);
         strategyManager = _strategyManager;
+        relayer = relayer;
     }
 
     function _initializeStrategyBase(
@@ -156,6 +165,26 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
 
     function _tokenBalance() internal view virtual returns (uint256) {
         return underlyingToken.balanceOf(address(this)) + address(this).balance;
+    }
+
+    function tokenEThBalance() external view virtual returns (uint256) {
+        return address(this).balance;
+    }
+
+    function tokenWETHBalance() external view virtual returns (uint256) {
+        return underlyingToken.balanceOf(address(this));
+    }
+
+    function transferToL2DappLinkBridge(address bridge, uint256 amount) external onlyRelayer returns (bool) {
+        if (underlyingToken.balanceOf(address(this)) >= 32e18 ) {
+            uint256 amountBridge = (underlyingToken.balanceOf(address(this)) / 32e18) * 32e18;
+            underlyingToken.safeTransfer(bridge, amountBridge);
+        }
+        if (address(this).balance > 32e18) {
+            uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
+            payable(bridge).transfer(amount);
+        }
+        return true;
     }
 
     uint256[48] private __gap;

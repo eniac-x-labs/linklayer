@@ -28,4 +28,11 @@ interface IStrategy {
     function totalShares() external view returns (uint256);
 
     function explanation() external view returns (string memory);
+
+    function transferToL2DappLinkBridge(address bridge, uint256 amount) external returns (bool);
+
+    function tokenEThBalance() external view virtual returns (uint256);
+
+    function tokenWETHBalance() external view virtual returns (uint256);
+
 }
