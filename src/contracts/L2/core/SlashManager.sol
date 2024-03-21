@@ -12,14 +12,18 @@ import "../../access/Pausable.sol";
 
 
 contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausable {
+    IStrategyManager public immutable strategyManager;
+    ISlashManager public immutable slasher;
 
-    constructor(IStrategyManager, IDelegationManager) {}
+    constructor() {
+         _disableInitializers();
+    }
 
     function initialize(
-        address,
-        IPauserRegistry,
-        uint256
-    ) external {}
+        address initialOwner
+    ) external {
+        _transferOwnership(initialOwner);
+    }
 
     function optIntoSlashing(address) external {}
 
@@ -36,52 +40,39 @@ contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausa
         uint256
     ) external {}
 
-    function recordLastStakeUpdateAndRevokeSlashingAbility(address, uint32) external {}
+    function recordLastStakeUpdateAndRevokeSlashingAbility(address, uint32) external {
 
-    function strategyManager() external view returns (IStrategyManager) {}
+    }
 
-    function delegation() external view returns (IDelegationManager) {}
+    function isFrozen(address) external view returns (bool) {
+         return true;
+    }
 
-    function isFrozen(address) external view returns (bool) {}
+    function canSlash(address, address) external view returns (bool) {
+         return true;
+    }
 
-    function canSlash(address, address) external view returns (bool) {}
 
     function contractCanSlashOperatorUntilBlock(
         address,
         address
-    ) external view returns (uint32) {}
+    ) external view returns (uint32) {
+         return 0;
+    }
 
-    function latestUpdateBlock(address, address) external view returns (uint32) {}
+    function latestUpdateBlock(address, address) external view returns (uint32) {
+         return 0;
+    }
 
-    function getCorrectValueForInsertAfter(address, uint32) external view returns (uint256) {}
+    function getCorrectValueForInsertAfter(address, uint32) external view returns (uint256) {
+        return 0;
+    }
 
     function canWithdraw(
         address,
         uint32,
         uint256
-    ) external returns (bool) {}
-
-    function operatorToMiddlewareTimes(
-        address,
-        uint256
-    ) external view returns (MiddlewareTimes memory) {}
-
-    function middlewareTimesLength(address) external view returns (uint256) {}
-
-    function getMiddlewareTimesIndexStalestUpdateBlock(address, uint32) external view returns (uint32) {}
-
-    function getMiddlewareTimesIndexServeUntilBlock(address, uint32) external view returns (uint32) {}
-
-    function operatorWhitelistedContractsLinkedListSize(address) external view returns (uint256) {}
-
-    function operatorWhitelistedContractsLinkedListEntry(
-        address,
-        address
-    ) external view returns (bool, uint256, uint256) {}
-
-    function whitelistedContractDetails(
-        address,
-        address
-    ) external view returns (MiddlewareDetails memory) {}
-
+    ) external returns (bool) {
+        return true;
+    }
 }

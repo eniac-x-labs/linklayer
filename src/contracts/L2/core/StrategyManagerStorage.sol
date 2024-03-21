@@ -16,8 +16,6 @@ abstract contract StrategyManagerStorage is IStrategyManager {
     uint8 internal constant MAX_STAKER_STRATEGY_LIST_LENGTH = 32;
 
     // system contracts
-    IDelegationManager public immutable delegation;
-    ISlashManager public immutable slasher;
 
     bytes32 internal _DOMAIN_SEPARATOR;
 
@@ -41,11 +39,6 @@ abstract contract StrategyManagerStorage is IStrategyManager {
 
 
     mapping(IStrategy => bool) public thirdPartyTransfersForbidden;
-
-    constructor(IDelegationManager _delegation, ISlashManager _slasher) {
-        delegation = _delegation;
-        slasher = _slasher;
-    }
 
 
     uint256[39] private __gap;

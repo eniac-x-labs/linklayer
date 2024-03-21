@@ -6,23 +6,6 @@ import "./IDelegationManager.sol";
 
 
 interface ISlashManager {
-    struct MiddlewareTimes {
-        uint32 stalestUpdateBlock;
-        uint32 latestServeUntilBlock;
-    }
-
-    struct MiddlewareDetails {
-        uint32 registrationMayBeginAtBlock;
-        uint32 contractCanSlashOperatorUntilBlock;
-        uint32 latestUpdateBlock;
-    }
-
-    event MiddlewareTimesAdded(
-        address operator,
-        uint256 index,
-        uint32 stalestUpdateBlock,
-        uint32 latestServeUntilBlock
-    );
 
     event OptedIntoSlashing(address indexed operator, address indexed contractAddress);
 
@@ -53,10 +36,6 @@ interface ISlashManager {
 
     function recordLastStakeUpdateAndRevokeSlashingAbility(address operator, uint32 serveUntilBlock) external;
 
-    function strategyManager() external view returns (IStrategyManager);
-
-    function delegation() external view returns (IDelegationManager);
-
     function isFrozen(address staker) external view returns (bool);
 
     function canSlash(address toBeSlashed, address slashingContract) external view returns (bool);
@@ -75,22 +54,4 @@ interface ISlashManager {
         uint32 withdrawalStartBlock,
         uint256 middlewareTimesIndex
     ) external returns (bool);
-
-    function operatorToMiddlewareTimes(
-        address operator,
-        uint256 arrayIndex
-    ) external view returns (MiddlewareTimes memory);
-
-    function middlewareTimesLength(address operator) external view returns (uint256);
-
-    function getMiddlewareTimesIndexStalestUpdateBlock(address operator, uint32 index) external view returns (uint32);
-
-    function getMiddlewareTimesIndexServeUntilBlock(address operator, uint32 index) external view returns (uint32);
-
-    function operatorWhitelistedContractsLinkedListSize(address operator) external view returns (uint256);
-
-    function operatorWhitelistedContractsLinkedListEntry(
-        address operator,
-        address node
-    ) external view returns (bool, uint256, uint256);
 }

@@ -24,6 +24,10 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     uint256 public constant MAX_STAKER_OPT_OUT_WINDOW_BLOCKS = (180 days) / 12;
 
+    IStrategyManager public strategyManager;
+
+    ISlashManager public slasher;
+
     modifier onlyStrategyManager() {
         require(
             msg.sender == address(strategyManager),
@@ -35,10 +39,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     /*******************************************************************************
                             INITIALIZING FUNCTIONS
     *******************************************************************************/
-    constructor(
-        IStrategyManager _strategyManager,
-        ISlashManager _slasher
-    ) DelegationManagerStorage(_strategyManager, _slasher) {
+    constructor() {
         _disableInitializers();
         ORIGINAL_CHAIN_ID = block.chainid;
     }
@@ -49,13 +50,17 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         uint256 initialPausedStatus,
         uint256 _minWithdrawalDelayBlocks,
         IStrategy[] calldata _strategies,
-        uint256[] calldata _withdrawalDelayBlocks
+        uint256[] calldata _withdrawalDelayBlocks,
+        IStrategyManager _strategyManager,
+        ISlashManager _slasher
     ) external initializer {
         _initializePauser(_pauserRegistry, initialPausedStatus);
         _DOMAIN_SEPARATOR = _calculateDomainSeparator();
         _transferOwnership(initialOwner);
         _setMinWithdrawalDelayBlocks(_minWithdrawalDelayBlocks);
         _setStrategyWithdrawalDelayBlocks(_strategies, _withdrawalDelayBlocks);
+        strategyManager = _strategyManager;
+        slasher = _slasher;
     }
 
     /*******************************************************************************

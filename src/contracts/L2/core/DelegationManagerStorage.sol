@@ -18,10 +18,6 @@ abstract contract DelegationManagerStorage is IDelegationManager {
 
     bytes32 internal _DOMAIN_SEPARATOR;
 
-    IStrategyManager public immutable strategyManager;
-
-    ISlashManager public immutable slasher;
-
     uint256 public constant MAX_WITHDRAWAL_DELAY_BLOCKS = 216000;
 
     mapping(address => mapping(IStrategy => uint256)) public operatorShares;
@@ -43,11 +39,6 @@ abstract contract DelegationManagerStorage is IDelegationManager {
     address private __deprecated_stakeRegistry;
 
     mapping(IStrategy => uint256) public strategyWithdrawalDelayBlocks;
-
-    constructor(IStrategyManager _strategyManager, ISlashManager _slasher) {
-        strategyManager = _strategyManager;
-        slasher = _slasher;
-    }
 
     uint256[39] private __gap;
 }

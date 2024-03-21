@@ -21,7 +21,7 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
     uint256 internal constant SHARES_OFFSET = 1e3;
     uint256 internal constant BALANCE_OFFSET = 1e3;
 
-    IStrategyManager public immutable strategyManager;
+    IStrategyManager public strategyManager;
 
     IERC20 public underlyingToken;
 
@@ -32,13 +32,17 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
         _;
     }
 
-    constructor(IStrategyManager _strategyManager) {
-        strategyManager = _strategyManager;
+    constructor() {
         _disableInitializers();
     }
 
-    function initialize(IERC20 _underlyingToken, IPauserRegistry _pauserRegistry) public virtual initializer {
+    function initialize(
+        IERC20 _underlyingToken,
+        IPauserRegistry _pauserRegistry,
+        IStrategyManager _strategyManager
+    ) public virtual initializer {
         _initializeStrategyBase(_underlyingToken, _pauserRegistry);
+        strategyManager = _strategyManager;
     }
 
     function _initializeStrategyBase(

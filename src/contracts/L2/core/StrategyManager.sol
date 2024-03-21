@@ -26,6 +26,9 @@ contract StrategyManager is
 
     uint256 internal immutable ORIGINAL_CHAIN_ID;
 
+    IDelegationManager public delegation;
+    ISlashManager public slasher;
+
     modifier onlyStrategyWhitelister() {
         require(
             msg.sender == strategyWhitelister,
@@ -48,10 +51,7 @@ contract StrategyManager is
     }
 
 
-    constructor(
-        IDelegationManager _delegation,
-        ISlashManager _slasher
-    ) StrategyManagerStorage(_delegation, _slasher) {
+    constructor()  {
         _disableInitializers();
         ORIGINAL_CHAIN_ID = block.chainid;
     }
@@ -61,12 +61,16 @@ contract StrategyManager is
         address initialOwner,
         address initialStrategyWhitelister,
         IPauserRegistry _pauserRegistry,
-        uint256 initialPausedStatus
+        uint256 initialPausedStatus,
+        IDelegationManager _delegation,
+        ISlashManager _slasher
     ) external initializer {
         _DOMAIN_SEPARATOR = _calculateDomainSeparator();
         _initializePauser(_pauserRegistry, initialPausedStatus);
         _transferOwnership(initialOwner);
         _setStrategyWhitelister(initialStrategyWhitelister);
+        delegation = _delegation;
+        slasher = _slasher;
     }
 
     function depositWETHIntoStrategy(
