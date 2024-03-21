@@ -28,12 +28,12 @@ contract WithdrawalVault  {
     /**
      * @param _dapplink the DappLink token address
      */
-    constructor(IDapplink _dapplink) {
-        if (address(_dapplink) == address(0)) {
+    constructor(address _dapplink) {
+        if (_dapplink == address(0)) {
             revert ZeroAddress();
         }
 
-        dappLink = _dapplink;
+        dappLink = IDapplink(_dapplink);
     }
 
     /**

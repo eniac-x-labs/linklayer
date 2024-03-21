@@ -177,9 +177,8 @@ contract NodeOperatorsRegistry is BaseApp {
     //
     // METHODS
     //
-    function initialize(address _locator, uint256 _stuckPenaltyDelay) public initializer {
-        _onlyNonZeroAddress(_locator);
-        __BaseApp_init(_locator);
+    function initialize(address _admin, uint256 _stuckPenaltyDelay) public initializer {
+        __BaseApp_init(_admin);
         _setStuckPenaltyDelay(_stuckPenaltyDelay);
     }
 

@@ -128,25 +128,18 @@ contract StakingRouter is BaseApp, BeaconChainDepositor {
 
     /**
      * @dev proxy initialization
-     * @param _admin Agent contract address
-     * @param _locator Locator address
      * @param _withdrawalCredentials Dapplink withdrawal vault contract address
      */
-    function initialize(address _admin, address _locator, bytes32 _withdrawalCredentials) external {
-        if (_admin == address(0)) revert ZeroAddress("_admin");
-        if (_locator == address(0)) revert ZeroAddress("_locator");
-
-        __BaseApp_init(_locator);
-        grantRole(DEFAULT_ADMIN_ROLE, _admin);
-
+    function initialize(address _admin, bytes32 _withdrawalCredentials) external initializer{
+        __BaseApp_init(_admin);
         WITHDRAWAL_CREDENTIALS_POSITION.setStorageBytes32(_withdrawalCredentials);
         emit WithdrawalCredentialsSet(_withdrawalCredentials, msg.sender);
     }
 
     /// @dev prohibit direct transfer to contract
-    receive() external payable {
-        revert DirectETHTransfer();
-    }
+    // receive() external payable {
+    //     revert DirectETHTransfer();
+    // }
 
 
     /**

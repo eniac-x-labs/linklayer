@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
-
+import "forge-std/Test.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "forge-std/Script.sol";
 import "@/contracts/L1/core/Dapplink.sol";
 import "@/contracts/L1/core/StakingRouter.sol";
 import "@/contracts/L1/core/DepositSecurityModule.sol";
 import "@/contracts/L1/core/DapplinkLocator.sol";
+import "@/contracts/L1/core/NodeOperatorsRegistry.sol";
+import "@/contracts/L1/core/WithdrawalVault.sol";
 import "@/contracts/proxy/Proxy.sol";
-
-
 
 
 // 定义与 Dapplink 合约相匹配的接口
@@ -20,31 +19,29 @@ interface IDapplinkT {
     function initialize(address _admin) external;
     // 添加其他必要的函数声明
 }
-
-// forge script script/L1Deployer.s.sol:PrivacyContractsDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
-// forge script ./script/L1Deployer.s.sol:PrivacyContractsDeployer --rpc-url http://localhost:8545  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast -vvvv
-// start local node of fork ethereum mainnet : anvil --fork-url https://mainnet.infura.io/v3/2004cc47a4cc47c69e8375ec0506a39f
-contract PrivacyContractsDeployer is Script {
-    ProxyAdmin public proxyAdmin;
+contract L1Deployer is Test {
+ProxyAdmin public proxyAdmin;
     Dapplink dapplink;
     StakingRouter stakingRouter;
     DepositSecurityModule depositSecurityModule;
     DapplinkLocator dapplinkLocator;
+    NodeOperatorsRegistry nodeOperatorsRegistry;
+    WithdrawalVault withdrawalVault;
     address admin;
     address _depositContract;
     address bridgel1;
     bytes32 _withdrawalCredentials;
     Proxy proxyDapplink;
     Proxy proxyStakingRouter;
+    Proxy proxyNodeOperatorsRegistry;
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+    fallback() external payable {}
+    receive() external payable {}
     function setUp() public {
-        admin = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+        admin = address(this);
         _depositContract = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
         bridgel1 = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
         _withdrawalCredentials = 0x01000000000000000000000089a65b936290915158ac4a2d66f77c961dfac685;
-    }
-    function run() external {
-        vm.startBroadcast(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
         dapplink = new Dapplink();
         proxyDapplink = new Proxy(address(dapplink), admin, "");
@@ -57,10 +54,17 @@ contract PrivacyContractsDeployer is Script {
         proxyStakingRouter = new Proxy(address(stakingRouter), admin, "");
         
         StakingRouter(address(proxyStakingRouter)).initialize(admin, _withdrawalCredentials);
-        // StakingRouter(address(proxyStakingRouter)).grantRole(DEFAULT_ADMIN_ROLE, admin);
+        StakingRouter(address(proxyStakingRouter)).grantRole(stakingRouter.STAKING_MODULE_MANAGE_ROLE(), admin);
 
         depositSecurityModule = new DepositSecurityModule(address(proxyDapplink), _depositContract, address(proxyStakingRouter), 150, 25, 6646);
 
+        
+        nodeOperatorsRegistry = new NodeOperatorsRegistry();
+        proxyNodeOperatorsRegistry = new Proxy(address(nodeOperatorsRegistry), admin, "");
+
+        NodeOperatorsRegistry(address(proxyNodeOperatorsRegistry)).initialize(admin, 432000 );
+
+        withdrawalVault = new WithdrawalVault(address(proxyDapplink));
 
 
 
@@ -69,7 +73,8 @@ contract PrivacyContractsDeployer is Script {
             l1Bridge: bridgel1, // 替换为您的实际地址
             dapplink: address(proxyDapplink),
             stakingRouter: address(proxyStakingRouter),
-            depositSecurityModule: _depositContract
+            depositSecurityModule: _depositContract,
+            withdrawalVault:address(withdrawalVault)
         });
 
 
@@ -77,6 +82,23 @@ contract PrivacyContractsDeployer is Script {
         IDapplinkT(address(proxyDapplink)).setLocator(address(dapplinkLocator));
         StakingRouter(address(proxyStakingRouter)).setLocator(address(dapplinkLocator));
 
-        vm.stopBroadcast();
+    }
+
+    function test_StakingEth()public{
+        address sender = address(this);
+        vm.deal(sender, 1000 ether); // 为测试账户提供以太
+        vm.prank(sender);
+
+        // 向另一个合约发送以太币
+        (bool success, ) = address(proxyDapplink).call{value: 32 ether}("");
+        require(success, "Transfer failed.");
+        assert(address(proxyDapplink).balance == 32 ether);
+    }
+
+    function test_AddStakingModule()public{
+        StakingRouter(address(proxyStakingRouter)).addStakingModule("test-1", address(proxyNodeOperatorsRegistry),10000, 500, 500);
+        StakingRouter.StakingModule memory stakingModule = StakingRouter(address(proxyStakingRouter)).getStakingModule(1);
+
+        assert(stakingModule.targetShare == 10000);
     }
 }

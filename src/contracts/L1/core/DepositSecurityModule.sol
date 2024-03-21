@@ -12,11 +12,11 @@ interface IDappLink {
     function canDeposit() external view returns (bool);
 }
 
-interface IDepositContract {
+interface IDepositContracts {
     function get_deposit_root() external view returns (bytes32 rootHash);
 }
 
-interface IStakingRouter {
+interface IStakingRouters {
     function pauseStakingModule(uint256 _stakingModuleId) external;
     function resumeStakingModule(uint256 _stakingModuleId) external;
     function getStakingModuleIsDepositsPaused(uint256 _stakingModuleId) external view returns (bool);
@@ -66,8 +66,8 @@ contract DepositSecurityModule {
     bytes32 public immutable PAUSE_MESSAGE_PREFIX;
 
     IDappLink public immutable DAPPLINK;
-    IStakingRouter public immutable STAKING_ROUTER;
-    IDepositContract public immutable DEPOSIT_CONTRACT;
+    IStakingRouters public immutable STAKING_ROUTER;
+    IDepositContracts public immutable DEPOSIT_CONTRACT;
 
     /**
      * NB: both `maxDepositsPerBlock` and `minDepositBlockDistance` values
@@ -97,8 +97,8 @@ contract DepositSecurityModule {
         if (_stakingRouter == address(0)) revert ZeroAddress ("_stakingRouter");
 
         DAPPLINK = IDappLink(_dappLink);
-        STAKING_ROUTER = IStakingRouter(_stakingRouter);
-        DEPOSIT_CONTRACT = IDepositContract(_depositContract);
+        STAKING_ROUTER = IStakingRouters(_stakingRouter);
+        DEPOSIT_CONTRACT = IDepositContracts(_depositContract);
 
         ATTEST_MESSAGE_PREFIX = keccak256(
             abi.encodePacked(
@@ -401,7 +401,7 @@ contract DepositSecurityModule {
      * Calls DAPPLINK.deposit(maxDepositsPerBlock, stakingModuleId, depositCalldata).
      *
      * Reverts if any of the following is true:
-     *   1. IDepositContract.get_deposit_root() != depositRoot.
+     *   1. IDepositContracts.get_deposit_root() != depositRoot.
      *   2. StakingModule.getNonce() != nonce.
      *   3. The number of guardian signatures is less than getGuardianQuorum().
      *   4. An invalid or non-guardian signature received.
@@ -424,7 +424,7 @@ contract DepositSecurityModule {
     ) external {
         if (quorum == 0 || sortedGuardianSignatures.length < quorum) revert DepositNoQuorum();
 
-        bytes32 onchainDepositRoot = IDepositContract(DEPOSIT_CONTRACT).get_deposit_root();
+        bytes32 onchainDepositRoot = IDepositContracts(DEPOSIT_CONTRACT).get_deposit_root();
         if (depositRoot != onchainDepositRoot) revert DepositRootChanged();
 
         if (!STAKING_ROUTER.getStakingModuleIsActive(stakingModuleId)) revert DepositInactiveModule();

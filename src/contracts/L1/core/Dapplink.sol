@@ -54,6 +54,16 @@ contract Dapplink is BaseApp{
     using SafeMath for uint256;
     using UnstructuredStorage for bytes32;
 
+
+    
+    struct Withdraw {
+        uint256 chainId;
+        uint256 amount;
+        address to;
+    }
+
+    Withdraw[] withdrawQueue;
+
     /// ACL
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
@@ -65,6 +75,10 @@ contract Dapplink is BaseApp{
     bytes32 internal constant DEPOSITED_VALIDATORS_POSITION = keccak256("dapplink.dapplink.depositedValidators");
     //When contract receive ethers
     event EthersReceive(address _transfer, uint256 _amount);
+    //When bufferedEtherPool's ethers amount is insufficient
+    event WithdrawQueueAdd(uint256 _chainId, uint256 _amount, address _to);
+    //Withdraw ethers to L2
+    event WithdrawL2(address _l1Bridge,uint256 _chainId, uint256 _amount, address _to);
     // Staking was paused (don't accept user's ether submits)
     event StakingPaused();
     // Staking was resumed (accept user's ether submits)
@@ -75,14 +89,17 @@ contract Dapplink is BaseApp{
     event DepositedValidatorsChanged(
         uint256 depositedValidators
     );
+    // The amount of ETH withdrawn from WithdrawalVault to Dapplink
+    event WithdrawalsReceived(uint256 amount);
+    // Need to exit node count 
+    event NeedExitNode(uint256 amount);
+
+
     /**
      * @dev
-     * @param _locator Dapplink's locator
      */
-    function initialize(address _locator) public payable initializer {
-        __BaseApp_init(_locator);
-
-        grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    function initialize(address _admin) public payable initializer {
+        __BaseApp_init(_admin);
     }
 
     /**
@@ -92,7 +109,6 @@ contract Dapplink is BaseApp{
     receive() external payable {
         _submit();
     }
-
     /**
      * @notice Send funds to the pool
      */
@@ -113,11 +129,43 @@ contract Dapplink is BaseApp{
      * @param _to Address for receiving transfer on the layer 2
      */
     function withdrawL2(uint256 _chainId, uint256 _amount, address _to) external onlyRole(WITHDRAWL2_ROLE) {
+
+        if(_getBufferedEther() >= _amount){
+            _setBufferedEther(_getBufferedEther().sub(_amount));
+
+            emit Unbuffered(_amount);
+
+            _withdrawL2(_chainId, _amount, _to);
+        }else{
+            Withdraw memory _withdraw = Withdraw({
+                chainId:_chainId,
+                amount:_amount,
+                to:_to
+            });
+            withdrawQueue.push(_withdraw);
+            emit WithdrawQueueAdd( _chainId, _amount, _to);
+            //TODO
+            // calculate need to exit node 
+            uint256 _exitCount = _amount.div(DEPOSIT_SIZE);
+
+        }
+    }
+
+    function _withdrawL2(uint256 _chainId, uint256 _amount, address _to) internal {
         IBridge _brdige = IBridge(locator.l1Bridge());
         bool _result = _brdige.BridgeInitiateETH{value:_amount}(block.chainid, _chainId, _to);
 
         require(_result, "WITHDRAWL2_ERROR");
 
+        emit WithdrawL2(address(_brdige), _chainId, _amount, _to);
+    }
+
+    function _removeWithdraw(uint256 index) internal {
+        require(index < withdrawQueue.length, "Index out of bounds");
+
+        withdrawQueue[index] = withdrawQueue[withdrawQueue.length - 1];
+
+        withdrawQueue.pop();
     }
 
 
@@ -143,7 +191,7 @@ contract Dapplink is BaseApp{
             depositsValue = depositsCount.mul(DEPOSIT_SIZE);
             /// @dev firstly update the local state of the contract to prevent a reentrancy attack,
             ///     even if the StakingRouter is a trusted contract.
-            BUFFERED_ETHER_POSITION.setStorageUint256(_getBufferedEther().sub(depositsValue));
+            _setBufferedEther(_getBufferedEther().sub(depositsValue));
             emit Unbuffered(depositsValue);
 
             uint256 newDepositedValidators = DEPOSITED_VALIDATORS_POSITION.getStorageUint256().add(depositsCount);
@@ -155,6 +203,17 @@ contract Dapplink is BaseApp{
         ///     sent to StakingRouter is counted as deposited. If StakingRouter can't deposit all
         ///     passed ether it MUST revert the whole transaction (never happens in normal circumstances)
         stakingRouter.deposit{value: depositsValue}(depositsCount, _stakingModuleId, _depositCalldata);
+    }
+
+      /**
+    * @notice A payable function for withdrawals acquisition. Can be called only by `WithdrawalVault`
+    * @dev We need a dedicated function because funds received by the default payable function
+    * are treated as a user deposit
+    */
+    function receiveWithdrawals() external payable {
+        require(msg.sender == locator.withdrawalVault());
+
+        emit WithdrawalsReceived(msg.value);
     }
      /**
      * @dev Returns depositable ether amount.

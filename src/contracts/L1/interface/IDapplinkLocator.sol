@@ -7,12 +7,14 @@ interface IDapplinkLocator {
     function dapplink() external view returns(address);
     function depositSecurityModule() external view returns(address);
     function stakingRouter() external view returns(address);
+    function withdrawalVault() external view returns(address);
 
     function coreComponents() external view returns(
         address l1Bridge,
         address dapplink,
         address depositSecurityModule,
-        address stakingRouter
+        address stakingRouter,
+        address withdrawalVault
     );
     // function oracleReportComponents() external view returns(
     //     address l1Bridge,
