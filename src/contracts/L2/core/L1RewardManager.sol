@@ -11,17 +11,18 @@ import "../interfaces/IL1RewardManager.sol";
 contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     uint256 public L1RewardBalance;
 
-    IStrategyManager public immutable strategyManager;
-    IStrategy public immutable strategy;
+    IStrategyManager public strategyManager;
 
-    constructor(IStrategyManager _strategyManager){
-        strategyManager = _strategyManager;
+    constructor(){
+       _disableInitializers();
     }
 
     function initialize(
-        address initialOwner
+        address initialOwner,
+        IStrategyManager _strategyManager
     ) external initializer {
         _transferOwnership(initialOwner);
+         strategyManager = _strategyManager;
     }
 
     function depositETHRewardTo() external payable returns (bool) {
@@ -32,12 +33,13 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
     }
 
     function claimL1Reward(IStrategy[] calldata _strategies) external payable returns (bool) {
-        uint256 shares = strategy.totalShares();
+        uint256 totalShares = 0;
         uint256 userShares = 0;
         for (uint256 i = 0; i < _strategies.length; i++) {
+            totalShares += _strategies[i].totalShares();
             userShares += _strategies[i].shares(msg.sender);
         }
-        uint256 amountToSend = L1RewardBalance * (userShares / shares);
+        uint256 amountToSend = L1RewardBalance * (userShares / totalShares);
         payable(msg.sender).transfer(amountToSend);
         emit ClaimL1Reward(msg.sender, amountToSend);
         return true;
