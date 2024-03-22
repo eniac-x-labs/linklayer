@@ -89,7 +89,11 @@ contract L2Deployer is Script {
 
         L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), strategyManager);
 
-        L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin));
+        {
+            address dappLinkAddr = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
+            IERC20 dappLinkToken = IERC20(dappLinkAddr);
+            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), delegationManager, strategyManager, dappLinkToken);
+        }
 
         {
             address initialStrategyWhitelister = msg.sender;
@@ -99,7 +103,6 @@ contract L2Deployer is Script {
         {
             address WethAddress = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
             IERC20 underlyingToken = IERC20(WethAddress);
-
             StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
             StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
             StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);

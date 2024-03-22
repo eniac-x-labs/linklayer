@@ -31,7 +31,7 @@ interface IStrategy {
 
     function transferToL2DappLinkBridge(address bridge, uint256 amount) external returns (bool);
 
-    function tokenEThBalance() external view virtual returns (uint256);
+    function tokenETHBalance() external view virtual returns (uint256);
 
     function tokenWETHBalance() external view virtual returns (uint256);
 
