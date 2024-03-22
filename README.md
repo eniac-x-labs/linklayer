@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This dapplink layer3 reverse staking protocol;
+This dapplink layer3 multi-staking protocol;
 
 
 ## How is work
