@@ -29,7 +29,9 @@ interface IStrategy {
 
     function explanation() external view returns (string memory);
 
-    function transferToL2DappLinkBridge(address bridge, uint256 amount) external returns (bool);
+    function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable returns (bool);
+
+    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable returns (bool);
 
     function tokenETHBalance() external view virtual returns (uint256);
 

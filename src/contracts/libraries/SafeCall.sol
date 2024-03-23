@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
 
 library SafeCall {
@@ -11,7 +11,7 @@ library SafeCall {
         bool _success;
         assembly {
             _success := call(
-                _gas, // gas Gaonxifacai
+                _gas, // gas
                 _target, // recipient
                 _value, // ether value
                 0, // inloc
@@ -86,6 +86,11 @@ library SafeCall {
                 revert(28, 100)
             }
 
+            // The call will be supplied at least ((_minGas * 64) / 63) gas due to the
+            // above assertion. This ensures that, in all circumstances (except for when the
+            // `_minGas` does not account for the `memory_expansion_cost` and `code_execution_cost`
+            // factors of the dynamic cost of the `CALL` opcode), the call will receive at least
+            // the minimum amount of gas specified.
             _success := call(
                 gas(), // gas
                 _target, // recipient

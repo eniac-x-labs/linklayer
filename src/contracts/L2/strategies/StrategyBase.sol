@@ -8,6 +8,7 @@ import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "../interfaces/IStrategyManager.sol";
 import "../../access/Pausable.sol";
 import "../../libraries/ETHAddress.sol";
+import "../../libraries/SafeCall.sol";
 
 
 
@@ -175,17 +176,34 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
         return underlyingToken.balanceOf(address(this));
     }
 
-    function transferToL2DappLinkBridge(address bridge, uint256 amount) external onlyRelayer returns (bool) {
+    function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable onlyRelayer returns (bool) {
         if (underlyingToken.balanceOf(address(this)) >= 32e18 ) {
             uint256 amountBridge = (underlyingToken.balanceOf(address(this)) / 32e18) * 32e18;
-            underlyingToken.safeTransfer(bridge, amountBridge);
+            bool success = SafeCall.callWithMinGas(
+                bridge,
+                gasLimit,
+                msg.value,
+                abi.encodeWithSignature("BridgeInitiateWETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, amountBridge)
+            );
+            return success;
         }
-        if (address(this).balance > 32e18) {
-            uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
-            payable(bridge).transfer(amount);
-        }
-        return true;
+        return false;
     }
+
+    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable onlyRelayer returns (bool) {
+         if (address(this).balance > 32e18) {
+             uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
+             bool success = SafeCall.callWithMinGas(
+                bridge,
+                gasLimit,
+                msg.value,
+                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, amountBridge)
+            );
+            return success;
+        }
+        return false;
+    }
+
 
     uint256[48] private __gap;
 }
