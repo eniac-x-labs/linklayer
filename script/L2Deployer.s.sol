@@ -108,6 +108,16 @@ contract L2Deployer is Script {
             StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
         }
 
+        vm.writeFile("data/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
+        vm.writeFile("data/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
+        vm.writeFile("data/proxyL1RewardManager.addr", vm.toString(address(proxyL1RewardManager)));
+        vm.writeFile("data/proxyL2RewardManager.addr", vm.toString(address(proxyL2RewardManager)));
+        vm.writeFile("data/proxyStrategyManager.addr", vm.toString(address(proxyStrategyManager)));
+        vm.writeFile("data/proxySocialStrategy.addr", vm.toString(address(proxySocialStrategy)));
+        vm.writeFile("data/proxyGamingStrategy.addr", vm.toString(address(proxyGamingStrategy)));
+        vm.writeFile("data/proxyDaStrategy.addr", vm.toString(address(proxyDaStrategy)));
+
+
         vm.stopBroadcast();
     }
 }
