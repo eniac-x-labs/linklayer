@@ -44,39 +44,39 @@ contract PrivacyContractsDeployer is Script {
         _withdrawalCredentials = 0x01000000000000000000000089a65b936290915158ac4a2d66f77c961dfac685;
     }
     function run() external {
-        vm.startBroadcast(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        // vm.startBroadcast(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
-        dapplink = new Dapplink();
-        proxyDapplink = new Proxy(address(dapplink), admin, "");
+        // dapplink = new Dapplink();
+        // proxyDapplink = new Proxy(address(dapplink), admin, "");
         
-        IDapplinkT(address(proxyDapplink)).initialize(admin);
-        // IDapplinkT(address(proxyDapplink)).grantRole(DEFAULT_ADMIN_ROLE, admin);
+        // IDapplinkT(address(proxyDapplink)).initialize(admin);
+        // // IDapplinkT(address(proxyDapplink)).grantRole(DEFAULT_ADMIN_ROLE, admin);
 
 
-        stakingRouter = new StakingRouter(_depositContract);
-        proxyStakingRouter = new Proxy(address(stakingRouter), admin, "");
+        // stakingRouter = new StakingRouter(_depositContract);
+        // proxyStakingRouter = new Proxy(address(stakingRouter), admin, "");
         
-        StakingRouter(address(proxyStakingRouter)).initialize(admin, _withdrawalCredentials);
-        // StakingRouter(address(proxyStakingRouter)).grantRole(DEFAULT_ADMIN_ROLE, admin);
+        // StakingRouter(address(proxyStakingRouter)).initialize(admin, _withdrawalCredentials);
+        // // StakingRouter(address(proxyStakingRouter)).grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        depositSecurityModule = new DepositSecurityModule(address(proxyDapplink), _depositContract, address(proxyStakingRouter), 150, 25, 6646);
-
-
+        // depositSecurityModule = new DepositSecurityModule(address(proxyDapplink), _depositContract, address(proxyStakingRouter), 150, 25, 6646);
 
 
-        // 部署合约并初始化配置
-        DapplinkLocator.Config memory initialConfig = DapplinkLocator.Config({
-            l1Bridge: bridgel1, // 替换为您的实际地址
-            dapplink: address(proxyDapplink),
-            stakingRouter: address(proxyStakingRouter),
-            depositSecurityModule: _depositContract
-        });
 
 
-        dapplinkLocator = new DapplinkLocator(initialConfig);
-        IDapplinkT(address(proxyDapplink)).setLocator(address(dapplinkLocator));
-        StakingRouter(address(proxyStakingRouter)).setLocator(address(dapplinkLocator));
+        // // 部署合约并初始化配置
+        // DapplinkLocator.Config memory initialConfig = DapplinkLocator.Config({
+        //     l1Bridge: bridgel1, // 替换为您的实际地址
+        //     dapplink: address(proxyDapplink),
+        //     stakingRouter: address(proxyStakingRouter),
+        //     depositSecurityModule: _depositContract
+        // });
 
-        vm.stopBroadcast();
+
+        // dapplinkLocator = new DapplinkLocator(initialConfig);
+        // IDapplinkT(address(proxyDapplink)).setLocator(address(dapplinkLocator));
+        // StakingRouter(address(proxyStakingRouter)).setLocator(address(dapplinkLocator));
+
+        // vm.stopBroadcast();
     }
 }

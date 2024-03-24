@@ -44,11 +44,11 @@ contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausa
 
     }
 
-    function isFrozen(address) external view returns (bool) {
+    function isFrozen(address) external pure returns (bool) {
          return true;
     }
 
-    function canSlash(address, address) external view returns (bool) {
+    function canSlash(address, address) external pure returns (bool) {
          return true;
     }
 
@@ -56,15 +56,15 @@ contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausa
     function contractCanSlashOperatorUntilBlock(
         address,
         address
-    ) external view returns (uint32) {
+    ) external pure returns (uint32) {
          return 0;
     }
 
-    function latestUpdateBlock(address, address) external view returns (uint32) {
+    function latestUpdateBlock(address, address) external pure returns (uint32) {
          return 0;
     }
 
-    function getCorrectValueForInsertAfter(address, uint32) external view returns (uint256) {
+    function getCorrectValueForInsertAfter(address, uint32) external pure returns (uint256) {
         return 0;
     }
 
@@ -72,7 +72,7 @@ contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausa
         address,
         uint32,
         uint256
-    ) external returns (bool) {
+    ) external pure returns (bool) {
         return true;
     }
 }
