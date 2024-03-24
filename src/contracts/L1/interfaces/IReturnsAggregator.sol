@@ -3,8 +3,13 @@ pragma solidity ^0.8.24;
 
 import {OracleRecord} from "./IOracle.sol";
 
-interface IReturnsAggregatorWrite {
-    /// @notice Takes the record from the oracle, aggregates net returns accordingly and forwards them to
-    /// the staking contract.
+interface IReturnsAggregator {
+    error InvalidConfiguration();
+    error NotOracle();
+    error Paused();
+    error ZeroAddress();
+
+    event FeesCollected(uint256 amount);
+
     function processReturns(uint256 rewardAmount, uint256 principalAmount, bool shouldIncludeELRewards) external;
 }
