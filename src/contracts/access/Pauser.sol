@@ -6,7 +6,7 @@ import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contr
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 
 import {IPauser, IPauserWrite, IPauserRead} from "./interface/IPauser.sol";
-import {IOracle} from "../L1/interfaces/IOracle.sol";
+import {IOracleManager} from "../L1/interfaces/IOracleManager.sol";
 
 
 contract Pauser is Initializable, AccessControlEnumerableUpgradeable, IPauser {
@@ -26,13 +26,13 @@ contract Pauser is Initializable, AccessControlEnumerableUpgradeable, IPauser {
 
     bool public isAllocateETHPaused;
 
-    IOracle public oracle;
+    IOracleManager public oracle;
 
     struct Init {
         address admin;
         address pauser;
         address unpauser;
-        IOracle oracle;
+        IOracleManager oracle;
     }
 
     constructor() {

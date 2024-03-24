@@ -11,7 +11,7 @@ import { ERC20Upgradeable } from "@openzeppelin-upgrades/contracts/token/ERC20/E
 
 import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
 import {IDETH} from "../interfaces/IDETH.sol";
-import {IOracleReadRecord} from "../interfaces/IOracle.sol";
+import {IOracleReadRecord} from "../interfaces/IOracleManager.sol";
 import {
     IUnstakeRequestsManager,
     IUnstakeRequestsManagerWrite,
@@ -19,6 +19,7 @@ import {
     UnstakeRequest
 } from "../interfaces/IUnstakeRequestsManager.sol";
 import {IStakingManagerReturnsWrite} from "../interfaces/IStakingManager.sol";
+import "../../libraries/SafeCall.sol";
 
 
 contract UnstakeRequestsManager is
@@ -98,7 +99,7 @@ contract UnstakeRequestsManager is
         return requestID;
     }
 
-    function claim(uint256 requestID, address requester) external onlyStakingContract {
+    function claim(uint256 requestID, address requester, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract returns (bool) {
         UnstakeRequest memory request = _unstakeRequests[requestID];
 
         if (request.requester == address(0)) {
@@ -128,10 +129,14 @@ contract UnstakeRequestsManager is
             cumulativeETHRequested: request.cumulativeETHRequested,
             blockNumber: request.blockNumber
         });
-        
         dETH.burn(request.dETHLocked);
-
-        Address.sendValue(payable(requester), request.ethRequested);
+        bool success = SafeCall.callWithMinGas(
+            bridge,
+            gasLimit,
+            request.ethRequested,
+            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, request.ethRequested)
+        );
+        return success;
     }
 
 

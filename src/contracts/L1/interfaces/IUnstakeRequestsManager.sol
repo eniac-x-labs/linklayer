@@ -15,7 +15,7 @@ struct UnstakeRequest {
 interface IUnstakeRequestsManagerWrite {
     function create(address requester, uint128 dETHLocked, uint128 ethRequested) external returns (uint256);
 
-    function claim(uint256 requestID, address requester) external;
+    function claim(uint256 requestID, address requester, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external returns (bool);
 
     function cancelUnfinalizedRequests(uint256 maxCancel) external returns (bool);
 

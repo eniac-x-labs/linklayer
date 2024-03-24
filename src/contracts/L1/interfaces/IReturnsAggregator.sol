@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {OracleRecord} from "./IOracle.sol";
+import {OracleRecord} from "./IOracleManager.sol";
 
 interface IReturnsAggregator {
     error InvalidConfiguration();

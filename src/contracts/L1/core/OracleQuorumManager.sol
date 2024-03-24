@@ -5,7 +5,7 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
 import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
-import {OracleRecord, IOracle} from "../interfaces/IOracle.sol";
+import {OracleRecord, IOracleManager} from "../interfaces/IOracleManager.sol";
 import { IOracleQuorumManager } from "../interfaces/IOracleQuorumManager.sol";
 
 
@@ -23,7 +23,7 @@ contract OracleQuorumManager is
 
     uint16 internal constant _BASIS_POINTS_DENOMINATOR = 10000;
 
-    IOracle public oracle;
+    IOracleManager public oracle;
 
     mapping(uint64 block => mapping(address reporter => bytes32 recordHash)) public reporterRecordHashesByBlock;
 
@@ -40,7 +40,7 @@ contract OracleQuorumManager is
         address reporterModifier;
         address manager;
         address[] allowedReporters;
-        IOracle oracle;
+        IOracleManager oracle;
     }
 
     constructor() {
