@@ -11,7 +11,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
 import {IPauserRead} from "../../access/interface/IPauser.sol";
-import {IOracleReadRecord, OracleRecord} from "../interfaces/IOracle.sol";
+import {IOracleReadRecord, OracleRecord} from "../interfaces/IOracleManager.sol";
 import {IStakingManagerReturnsWrite} from "../interfaces/IStakingManager.sol";
 import {IReturnsAggregator} from "../interfaces/IReturnsAggregator.sol";
 

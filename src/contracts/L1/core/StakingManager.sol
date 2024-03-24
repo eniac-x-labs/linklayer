@@ -13,7 +13,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
 import { IDepositContract } from "../interfaces/IDepositContract.sol";
 import { IDETH } from "../interfaces/IDETH.sol";
-import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracle.sol";
+import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
 import { IPauserRead } from "../../access/interface/IPauser.sol";
 import { IStakingManager, IStakingManagerReturnsWrite, IStakingManagerInitiationRead } from "../interfaces/IStakingManager.sol";
 import { UnstakeRequest, IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
@@ -83,7 +83,9 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
 
     uint256 public initializationBlockNumber;
 
-    uint256 public maximumMETHSupply;
+    uint256 public maximumDETHSupply;
+
+    address public relayer;
 
     struct Init {
         address admin;
@@ -92,6 +94,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         address initiatorService;
         address returnsAggregator;
         address withdrawalWallet;
+        address relayer;
         IDETH dETH;
         IDepositContract depositContract;
         IOracleReadRecord oracle;
@@ -120,6 +123,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         pauser = init.pauser;
         returnsAggregator = init.returnsAggregator;
         unstakeRequestsManager = init.unstakeRequestsManager;
+        relayer = init.relayer;
         withdrawalWallet = init.withdrawalWallet;
 
         minimumStakeBound = 0.1 ether;
@@ -129,10 +133,10 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         isStakingAllowlist = true;
         initializationBlockNumber = block.number;
 
-        maximumMETHSupply = 1024 ether;
+        maximumDETHSupply = 1024 ether;
     }
 
-    function stake(uint256 minMETHAmount) external payable {
+    function stake(uint256 minDETHAmount) external onlyRelayer payable {
         if (pauser.isStakingPaused()) {
             revert Paused();
         }
@@ -145,12 +149,12 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
             revert MinimumStakeBoundNotSatisfied();
         }
 
-        uint256 dETHMintAmount = ethToMETH(msg.value);
-        if (dETHMintAmount + dETH.totalSupply() > maximumMETHSupply) {
-            revert MaximumMETHSupplyExceeded();
+        uint256 dETHMintAmount = ethToDETH(msg.value);
+        if (dETHMintAmount + dETH.totalSupply() > maximumDETHSupply) {
+            revert MaximumDETHSupplyExceeded();
         }
-        if (dETHMintAmount < minMETHAmount) {
-            revert StakeBelowMinimumMETHAmount(dETHMintAmount, minMETHAmount);
+        if (dETHMintAmount < minDETHAmount) {
+            revert StakeBelowMinimumDETHAmount(dETHMintAmount, minDETHAmount);
         }
 
         unallocatedETH += msg.value;
@@ -177,8 +181,8 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
             revert UnstakeBelowMinimudETHAmount(ethAmount, minETHAmount);
         }
 
-        uint256 requestID =
-            unstakeRequestsManager.create({requester: msg.sender, dETHLocked: methAmount, ethRequested: ethAmount});
+        uint256 requestID = unstakeRequestsManager.create({requester: msg.sender, dETHLocked: methAmount, ethRequested: ethAmount});
+
         emit UnstakeRequested({id: requestID, staker: msg.sender, ethAmount: ethAmount, dETHLocked: methAmount});
 
         SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), methAmount);
@@ -186,12 +190,12 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         return requestID;
     }
     
-    function claimUnstakeRequest(uint256 unstakeRequestID) external {
+    function claimUnstakeRequest(uint256 unstakeRequestID, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyRelayer {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
-        emit UnstakeRequestClaimed(unstakeRequestID, msg.sender);
-        unstakeRequestsManager.claim(unstakeRequestID, msg.sender);
+        emit UnstakeRequestClaimed(unstakeRequestID, msg.sender, bridge, sourceChainId, destChainId);
+        unstakeRequestsManager.claim(unstakeRequestID, msg.sender, bridge, sourceChainId, destChainId, gasLimit);
     }
     
     function unstakeRequestInfo(uint256 unstakeRequestID) external view returns (bool, uint256) {
@@ -299,7 +303,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         unallocatedETH += msg.value;
     }
     
-    function ethToMETH(uint256 ethAmount) public view returns (uint256) {
+    function ethToDETH(uint256 ethAmount) public view returns (uint256) {
         if (dETH.totalSupply() == 0) {
             return ethAmount;
         }
@@ -364,6 +368,13 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         _;
     }
 
+     modifier onlyRelayer() {
+        if (msg.sender != address(relayer)) {
+            revert NotRelayer();
+        }
+        _;
+    }
+
     modifier notZeroAddress(address addr) {
         if (addr == address(0)) {
             revert ZeroAddress();
@@ -414,10 +425,10 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         );
     }
     
-    function setMaximumMETHSupply(uint256 maximumMETHSupply_) external onlyRole(STAKING_MANAGER_ROLE) {
-        maximumMETHSupply = maximumMETHSupply_;
+    function setMaximumDETHSupply(uint256 maximumDETHSupply_) external onlyRole(STAKING_MANAGER_ROLE) {
+        maximumDETHSupply = maximumDETHSupply_;
         emit ProtocolConfigChanged(
-            this.setMaximumMETHSupply.selector, "setMaximumMETHSupply(uint256)", abi.encode(maximumMETHSupply_)
+            this.setMaximumDETHSupply.selector, "setMaximumDETHSupply(uint256)", abi.encode(maximumDETHSupply_)
         );
     }
     

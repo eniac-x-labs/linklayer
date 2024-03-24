@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {OracleRecord, IOracle} from "./IOracle.sol";
+import {OracleRecord, IOracleManager} from "./IOracleManager.sol";
 
 
 interface IOracleQuorumManager {

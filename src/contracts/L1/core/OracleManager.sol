@@ -7,17 +7,18 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
 import {
-    IOracle,
+    IOracleManager,
     IOracleReadRecord,
     IOracleReadPending,
     IOracleWrite,
     OracleRecord
-} from "../interfaces/IOracle.sol";
+} from "../interfaces/IOracleManager.sol";
 import { IStakingManagerInitiationRead } from "../interfaces/IStakingManager.sol";
 import { IReturnsAggregator } from "../interfaces/IReturnsAggregator.sol";
 import {IPauser} from "../../access/interface/IPauser.sol";
 
-contract Oracle is Initializable, AccessControlEnumerableUpgradeable, IOracle, ProtocolEvents {
+
+contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, IOracleManager, ProtocolEvents {
     bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
 
     bytes32 public constant ORACLE_MODIFIER_ROLE = keccak256("ORACLE_MODIFIER_ROLE");

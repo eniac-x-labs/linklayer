@@ -27,13 +27,7 @@ interface IOracleReadPending {
     function hasPendingUpdate() external view returns (bool);
 }
 
-interface IOracleRead is IOracleReadRecord, IOracleReadPending {}
-
-interface IOracleManager {
-    function setOracleUpdater(address newUpdater) external;
-}
-
-interface IOracle is IOracleWrite, IOracleRead, IOracleManager {
+interface IOracleManager is IOracleWrite, IOracleReadRecord, IOracleReadPending {
     error CannotUpdateWhileUpdatePending();
     error CannotModifyInitialRecord();
     error InvalidConfiguration();
@@ -55,4 +49,6 @@ interface IOracle is IOracleWrite, IOracleRead, IOracleManager {
     event OracleRecordFailedSanityCheck(
         bytes32 indexed reasonHash, string reason, OracleRecord record, uint256 value, uint256 bound
     );
+
+     function setOracleUpdater(address newUpdater) external;
 }
