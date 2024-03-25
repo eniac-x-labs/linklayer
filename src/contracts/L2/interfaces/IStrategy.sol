@@ -31,7 +31,7 @@ interface IStrategy {
 
     function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable returns (bool);
 
-    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable returns (bool);
+    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address wethAddress, uint256 gasLimit) external payable returns (bool);
 
     function tokenETHBalance() external view returns (uint256);
 

@@ -197,14 +197,14 @@ contract StrategyBase is Initializable, IStrategy {
         return false;
     }
 
-    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, uint256 gasLimit) external payable onlyRelayer returns (bool) {
+    function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address wethAddress, uint256 gasLimit) external payable onlyRelayer returns (bool) {
          if (address(this).balance > 32e18) {
              uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
              bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
                 msg.value,
-                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, amountBridge)
+                abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, wethAddress, amountBridge)
             );
             return success;
         }
