@@ -22,5 +22,5 @@ broadcast
 # Deployment tools
 /data
 .idea
-/lib
-lib
+# /lib
+# lib
