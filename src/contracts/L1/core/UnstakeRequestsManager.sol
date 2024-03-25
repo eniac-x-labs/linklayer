@@ -44,7 +44,7 @@ contract UnstakeRequestsManager is
     
     IDETH public dETH;
     
-    uint128 public latestCumulativeETHRequested;
+    uint256 public latestCumulativeETHRequested;
     
     UnstakeRequest[] internal _unstakeRequests;
 
@@ -75,12 +75,12 @@ contract UnstakeRequestsManager is
         _grantRole(REQUEST_CANCELLER_ROLE, init.requestCanceller);
     }
     
-    function create(address requester, uint128 dETHLocked, uint128 ethRequested)
+    function create(address requester, uint256 dETHLocked, uint256 ethRequested)
         external
         onlyStakingContract
         returns (uint256)
     {
-        uint128 currentCumulativeETHRequested = latestCumulativeETHRequested + ethRequested;
+        uint256 currentCumulativeETHRequested = latestCumulativeETHRequested + ethRequested;
         uint256 requestID = _unstakeRequests.length;
         UnstakeRequest memory unstakeRequest = UnstakeRequest({
             id: uint128(requestID),
@@ -154,7 +154,7 @@ contract UnstakeRequestsManager is
         UnstakeRequest[] memory requests = new UnstakeRequest[](maxCancel);
 
         uint256 numCancelled = 0;
-        uint128 amountETHCancelled = 0;
+        uint256 amountETHCancelled = 0;
         while (numCancelled < maxCancel) {
             UnstakeRequest memory request = _unstakeRequests[_unstakeRequests.length - 1];
 

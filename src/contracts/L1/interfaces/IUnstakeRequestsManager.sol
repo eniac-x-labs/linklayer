@@ -7,13 +7,13 @@ struct UnstakeRequest {
     uint64 blockNumber;
     address requester;
     uint128 id;
-    uint128 dETHLocked;
-    uint128 ethRequested;
-    uint128 cumulativeETHRequested;
+    uint256 dETHLocked;
+    uint256 ethRequested;
+    uint256 cumulativeETHRequested;
 }
 
 interface IUnstakeRequestsManagerWrite {
-    function create(address requester, uint128 dETHLocked, uint128 ethRequested) external returns (uint256);
+    function create(address requester, uint256 dETHLocked, uint256 ethRequested) external returns (uint256);
 
     function claim(uint256 requestID, address requester, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external returns (bool);
 
