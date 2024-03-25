@@ -21,7 +21,7 @@ import "@/contracts/L1/interfaces/IDepositContract.sol";
 
 import "forge-std/Script.sol";
 
-
+// forge script script/L1Deployer.s.sol:L1Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv --legacy --gas-price 1000000000
 contract L1Deployer is Script {
     ProxyAdmin             public dappLinkProxyAdmin;
     DETH                   public dETH;

@@ -21,7 +21,7 @@ import "forge-std/Script.sol";
 
 
 
-// forge script script/L2Deployer.s.sol:L2Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
+// forge script script/L2Deployer.s.sol:L2Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv --legacy --gas-price 1000000000
 contract L2Deployer is Script {
     ProxyAdmin        public dappLinkProxyAdmin;
     DelegationManager public delegationManager;

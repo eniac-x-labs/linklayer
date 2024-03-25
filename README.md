@@ -25,6 +25,12 @@ forge test
 
 ## 4.Deploy
 
-```shell
-forge script script/L1Deployer.s.sol:PrivacyContractsDeployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv
+### Deploy L1
+```
+forge script script/L1Deployer.s.sol:L1Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv --legacy --gas-price 1000000000
+```
+
+### Deploy L2
+```
+forge script script/L2Deployer.s.sol:L12Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv --legacy --gas-price 1000000000
 ```
