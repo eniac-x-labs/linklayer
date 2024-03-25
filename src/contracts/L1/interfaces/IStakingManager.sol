@@ -20,13 +20,14 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
     error MaximumValidatorDepositExceeded();
     error MaximumDETHSupplyExceeded();
     error MinimumStakeBoundNotSatisfied();
+    error MinimumDepositAmountNotSatisfied();
     error MinimumUnstakeBoundNotSatisfied();
     error MinimumValidatorDepositNotSatisfied();
     error NotEnoughDepositETH();
     error NotEnoughUnallocatedETH();
     error NotReturnsAggregator();
     error NotUnstakeRequestsManager();
-    error NotRelayer();
+    error NotDappLinkBridge();
     error Paused();
     error PreviouslyUsedValidator();
     error ZeroAddress();

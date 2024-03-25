@@ -5,17 +5,11 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import {IPauser, IPauserWrite, IPauserRead} from "./interface/IPauser.sol";
-import {IOracleManager} from "../L1/interfaces/IOracleManager.sol";
+import { IOracleManager } from "../L1/interfaces/IOracleManager.sol";
+import {L1PauserStorage} from "./L1PauserStorage.sol";
 
 
-contract Pauser is Initializable, AccessControlEnumerableUpgradeable, IPauser {
-    error PauserRoleOrOracleRequired(address sender);
-
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-    bytes32 public constant UNPAUSER_ROLE = keccak256("UNPAUSER_ROLE");
-
+contract L1Pauser is Initializable, AccessControlEnumerableUpgradeable, L1PauserStorage {
     bool public isStakingPaused;
 
     bool public isUnstakeRequestsAndClaimsPaused;
@@ -25,6 +19,10 @@ contract Pauser is Initializable, AccessControlEnumerableUpgradeable, IPauser {
     bool public isSubmitOracleRecordsPaused;
 
     bool public isAllocateETHPaused;
+
+    bool public isStrategyDeposit;
+
+    bool public isStrategyWithdraw;
 
     IOracleManager public oracle;
 
@@ -41,11 +39,9 @@ contract Pauser is Initializable, AccessControlEnumerableUpgradeable, IPauser {
 
     function initialize(Init memory init) external initializer {
         __AccessControlEnumerable_init();
-
         _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
         _grantRole(PAUSER_ROLE, init.pauser);
         _grantRole(UNPAUSER_ROLE, init.unpauser);
-
         oracle = init.oracle;
     }
 

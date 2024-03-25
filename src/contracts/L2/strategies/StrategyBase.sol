@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 import "../interfaces/IStrategyManager.sol";
-import "../../access/Pausable.sol";
+import "../../access/interface/IL2Pauser.sol";
 import "../../libraries/ETHAddress.sol";
 import "../../libraries/SafeCall.sol";
 
 
 
 
-contract StrategyBase is Initializable, Pausable, IStrategy {
+contract StrategyBase is Initializable, IStrategy {
     using SafeERC20 for IERC20;
 
     uint8 internal constant PAUSED_DEPOSITS = 0;
@@ -29,6 +29,8 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
     address public relayer;
 
     uint256 public totalShares;
+
+    IL2Pauser public pauser;
 
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
@@ -47,26 +49,29 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
     function initialize(
         IERC20 _underlyingToken,
         address  _relayer,
-        IPauserRegistry _pauserRegistry,
-        IStrategyManager _strategyManager
+        IStrategyManager _strategyManager,
+        IL2Pauser _pauser
     ) public virtual initializer {
-        _initializeStrategyBase(_underlyingToken, _pauserRegistry);
+        _initializeStrategyBase(_underlyingToken, _pauser);
         strategyManager = _strategyManager;
         relayer = relayer;
     }
 
     function _initializeStrategyBase(
         IERC20 _underlyingToken,
-        IPauserRegistry _pauserRegistry
+        IL2Pauser _pauser
     ) internal onlyInitializing {
         underlyingToken = _underlyingToken;
-        _initializePauser(_pauserRegistry, UNPAUSE_ALL);
+        pauser = _pauser;
     }
 
     function deposit(
         IERC20 token,
         uint256 amount
-    ) external virtual override onlyWhenNotPaused(PAUSED_DEPOSITS) onlyStrategyManager returns (uint256 newShares) {
+    ) external virtual override onlyStrategyManager returns (uint256 newShares) {
+
+        require(pauser.isStrategyDeposit(), "StrategyBase:deposit paused");
+
         _beforeDeposit(token, amount);
 
         uint256 priorTotalShares = totalShares;
@@ -87,7 +92,9 @@ contract StrategyBase is Initializable, Pausable, IStrategy {
         address recipient,
         IERC20 token,
         uint256 amountShares
-    ) external virtual override onlyWhenNotPaused(PAUSED_WITHDRAWALS) onlyStrategyManager {
+    ) external virtual override onlyStrategyManager {
+        require(pauser.isStrategyWithdraw(), "StrategyBase:withdraw paused");
+
         _beforeWithdrawal(recipient, token, amountShares);
 
         uint256 priorTotalShares = totalShares;

@@ -7,11 +7,9 @@ import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "../interfaces/ISlashManager.sol";
 import "../interfaces/IDelegationManager.sol";
 import "../interfaces/IStrategyManager.sol";
-import "../../access/Pausable.sol";
 
 
-
-contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager, Pausable {
+contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager {
     IStrategyManager public immutable strategyManager;
     ISlashManager public immutable slasher;
 
