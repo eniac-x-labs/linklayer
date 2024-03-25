@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
+import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
 import {
     IOracleManager,
     IOracleReadRecord,
@@ -15,20 +15,11 @@ import {
 } from "../interfaces/IOracleManager.sol";
 import { IStakingManagerInitiationRead } from "../interfaces/IStakingManager.sol";
 import { IReturnsAggregator } from "../interfaces/IReturnsAggregator.sol";
-import {IPauser} from "../../access/interface/IPauser.sol";
+import { IL1Pauser } from "../../access/interface/IL1Pauser.sol";
+import { OracleManagerStorage } from "./OracleManagerStorage.sol";
 
 
-contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, IOracleManager, ProtocolEvents {
-    bytes32 public constant ORACLE_MANAGER_ROLE = keccak256("ORACLE_MANAGER_ROLE");
-
-    bytes32 public constant ORACLE_MODIFIER_ROLE = keccak256("ORACLE_MODIFIER_ROLE");
-
-    bytes32 public constant ORACLE_PENDING_UPDATE_RESOLVER_ROLE = keccak256("ORACLE_PENDING_UPDATE_RESOLVER_ROLE");
-
-    uint256 internal constant _FINALIZATION_BLOCK_NUMBER_DELTA_UPPER_BOUND = 2048;
-
-    OracleRecord[] internal _records;
-
+contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, OracleManagerStorage, ProtocolEvents {
     bool public hasPendingUpdate;
 
     OracleRecord internal _pendingUpdate;
@@ -37,7 +28,7 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, IOr
 
     address public oracleUpdater;
 
-    IPauser public pauser;
+    IL1Pauser public pauser;
 
     IStakingManagerInitiationRead public staking;
 
@@ -65,7 +56,7 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, IOr
         address oracleUpdater;
         address pendingResolver;
         IReturnsAggregator aggregator;
-        IPauser pauser;
+        IL1Pauser pauser;
         IStakingManagerInitiationRead staking;
     }
 

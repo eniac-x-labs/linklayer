@@ -12,7 +12,7 @@ import "@/contracts/L2/strategies/StrategyBase.sol";
 
 import "@/contracts/L2/core/SlashManager.sol";
 
-import "@/contracts/access/PauserRegistry.sol";
+import "@/contracts/access/L2Pauser.sol";
 
 import "../src/contracts/access/proxy/Proxy.sol";
 
@@ -32,24 +32,15 @@ contract L2Deployer is Script {
     StrategyBase      public gamingStrategy;
     StrategyBase      public daStrategy;
     SlashManager      public slashManager;
-
-    IPauserRegistry public dappLinkPauserReg;
-    address[] pausers;
+    L2Pauser          public dappLinkPauser;
 
     function run() external {
         vm.startBroadcast();
-
-        pausers.push(msg.sender);
-        address unpauser = msg.sender;
-        address dappLinkMultisig = msg.sender;
         address admin = msg.sender;
         address relayer = msg.sender;
 
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
-        dappLinkPauserReg = new PauserRegistry(pausers, unpauser);
-
-        uint256 initialPausedStatus = 0;
-
+        dappLinkPauser = new L2Pauser();
         delegationManager = new DelegationManager();
         slashManager = new SlashManager();
         l1RewardManager = new L1RewardManager();
@@ -61,6 +52,7 @@ contract L2Deployer is Script {
 
 
         //====================== deploy ======================
+        Proxy proxyDappLinkPauser = new Proxy(address(dappLinkPauser), address(admin), "");
         Proxy proxyDelegationManager = new Proxy(address(delegationManager), address(admin), "");
         Proxy proxySlashManager = new Proxy(address(slashManager), address(admin), "");
         Proxy proxyL1RewardManager = new Proxy(address(l1RewardManager), address(admin), "");
@@ -72,7 +64,16 @@ contract L2Deployer is Script {
 
 
         //====================== initialize ======================
-         {
+        {
+            L2Pauser.Init memory initInfo = L2Pauser.Init({
+                admin: msg.sender,
+                pauser: msg.sender,
+                unpauser: msg.sender
+             });
+            L2Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
+        }
+
+        {
             IStrategy[] memory _strategies = new IStrategy[](3);
             _strategies[0] = IStrategy(address(socialStrategy));
             _strategies[1] = IStrategy(address(gamingStrategy));
@@ -82,7 +83,7 @@ contract L2Deployer is Script {
              _withdrawalDelayBlocks[1]= 10;
              _withdrawalDelayBlocks[2]= 10;
              uint256 _minWithdrawalDelayBlocks = 5;
-             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), dappLinkPauserReg, initialPausedStatus, _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, strategyManager, slashManager);
+             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, strategyManager, slashManager, dappLinkPauser);
         }
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
@@ -97,15 +98,15 @@ contract L2Deployer is Script {
 
         {
             address initialStrategyWhitelister = msg.sender;
-            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, dappLinkPauserReg, initialPausedStatus, delegationManager, slashManager);
+            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, delegationManager, slashManager, dappLinkPauser);
         }
 
         {
             address WethAddress = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
             IERC20 underlyingToken = IERC20(WethAddress);
-            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
-            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
-            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, dappLinkPauserReg, strategyManager);
+            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
+            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
+            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
         }
 
         vm.writeFile("data/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));

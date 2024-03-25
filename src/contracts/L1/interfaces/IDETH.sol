@@ -7,8 +7,15 @@ import { IERC20Permit } from "@openzeppelin-upgrades/contracts/token/ERC20/exten
 
 interface IDETH is IERC20, IERC20Permit {
     error NotStakingManagerContract();
+    error NotL2ShareAddress();
     error NotUnstakeRequestsManagerContract();
 
+     struct BatchMint {
+        address staker;
+        uint256 amount;
+    }
+
     function mint(address staker, uint256 amount) external;
+    function batchMint(BatchMint[] calldata batcher) external;
     function burn(uint256 amount) external;
 }

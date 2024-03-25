@@ -5,11 +5,10 @@ import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../access/interface/IPauserRegistry.sol";
-import "../../access/Pausable.sol";
 import "./StrategyManagerStorage.sol";
 import "../../libraries/EIP1271SignatureUtils.sol";
 import "../../libraries/ETHAddress.sol";
+import { IL2Pauser } from "../../access/interface/IL2Pauser.sol";
 
 
 
@@ -17,7 +16,6 @@ contract StrategyManager is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
-    Pausable,
     StrategyManagerStorage
 {
     using SafeERC20 for IERC20;
@@ -28,6 +26,7 @@ contract StrategyManager is
 
     IDelegationManager public delegation;
     ISlashManager public slasher;
+    IL2Pauser public pauser;
 
     modifier onlyStrategyWhitelister() {
         require(
@@ -60,31 +59,34 @@ contract StrategyManager is
     function initialize(
         address initialOwner,
         address initialStrategyWhitelister,
-        IPauserRegistry _pauserRegistry,
-        uint256 initialPausedStatus,
         IDelegationManager _delegation,
-        ISlashManager _slasher
+        ISlashManager _slasher,
+        IL2Pauser _pauser
     ) external initializer {
         _DOMAIN_SEPARATOR = _calculateDomainSeparator();
-        _initializePauser(_pauserRegistry, initialPausedStatus);
         _transferOwnership(initialOwner);
         _setStrategyWhitelister(initialStrategyWhitelister);
         delegation = _delegation;
         slasher = _slasher;
+        pauser = _pauser;
     }
 
     function depositWETHIntoStrategy(
         IStrategy strategy,
         IERC20 token,
         uint256 amount
-    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+    ) external nonReentrant returns (uint256 shares) {
+        require(pauser.isStrategyDeposit(), "StrategyManager:depositWETHIntoStrategy paused");
         shares = _depositWETHIntoStrategy(msg.sender, strategy, token, amount);
     }
 
     function depositETHIntoStrategy(
         IStrategy strategy,
         uint256 amount
-    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+    ) external nonReentrant returns (uint256 shares) {
+
+        require(pauser.isStrategyDeposit(), "StrategyManager:depositETHIntoStrategy paused");
+
         shares = _depositETHIntoStrategy(msg.sender, strategy, amount);
     }
 
@@ -95,7 +97,8 @@ contract StrategyManager is
         address staker,
         uint256 expiry,
         bytes memory signature
-    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+    ) external nonReentrant returns (uint256 shares) {
+        require(pauser.isStrategyDeposit(), "StrategyManager:depositWETHIntoStrategyWithSignature paused");
         require(
             !thirdPartyTransfersForbidden[strategy],
             "StrategyManager.depositIntoStrategyWithSignature: third transfers disabled"
@@ -120,7 +123,8 @@ contract StrategyManager is
         address staker,
         uint256 expiry,
         bytes memory signature
-    ) external onlyWhenNotPaused(PAUSED_DEPOSITS) nonReentrant returns (uint256 shares) {
+    ) external nonReentrant returns (uint256 shares) {
+        require(pauser.isStrategyDeposit(), "StrategyManager:depositETHIntoStrategyWithSignature paused");
         require(
             !thirdPartyTransfersForbidden[strategy],
             "StrategyManager.depositIntoStrategyWithSignature: third transfers disabled"

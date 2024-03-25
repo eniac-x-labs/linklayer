@@ -13,10 +13,13 @@ import { IUnstakeRequestsManager } from "@/contracts/L1/interfaces/IUnstakeReque
 contract DETH is Initializable, AccessControlEnumerableUpgradeable, ERC20PermitUpgradeable, IDETH {
     IStakingManager public stakingContract;
 
+    address public l2ShareAddress;
+
     IUnstakeRequestsManager public unstakeRequestsManagerContract;
 
     struct Init {
         address admin;
+        address l2ShareAddress;
         IStakingManager staking;
         IUnstakeRequestsManager unstakeRequestsManager;
     }
@@ -32,6 +35,7 @@ contract DETH is Initializable, AccessControlEnumerableUpgradeable, ERC20PermitU
 
         _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
         stakingContract = init.staking;
+        l2ShareAddress = init.l2ShareAddress;
         unstakeRequestsManagerContract = init.unstakeRequestsManager;
     }
 
@@ -40,6 +44,15 @@ contract DETH is Initializable, AccessControlEnumerableUpgradeable, ERC20PermitU
             revert NotStakingManagerContract();
         }
         _mint(staker, amount);
+    }
+
+    function batchMint(BatchMint[] calldata batcher) external {
+        if (msg.sender != l2ShareAddress) {
+            revert NotL2ShareAddress();
+        }
+        for (uint256 i =0; i < batcher.length; i++) {
+            _mint(batcher[i].staker, batcher[i].amount);
+        }
     }
 
     function burn(uint256 amount) external {

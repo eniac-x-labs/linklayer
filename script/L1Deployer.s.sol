@@ -12,7 +12,7 @@ import "@/contracts/L1/core/ReturnsReceiver.sol";
 import "@/contracts/L1/core/StakingManager.sol";
 import "@/contracts/L1/core/UnstakeRequestsManager.sol";
 
-import "@/contracts/access/Pauser.sol";
+import "@/contracts/access/L1Pauser.sol";
 
 import "../src/contracts/access/proxy/Proxy.sol";
 
@@ -29,7 +29,7 @@ contract L1Deployer is Script {
     ReturnsReceiver        public returnsReceiver;
     StakingManager         public stakingManager;
     UnstakeRequestsManager public unstakeRequestsManager;
-    Pauser                 public dappLinkPauser;
+    L1Pauser                 public dappLinkPauser;
 
     function run() external {
         vm.startBroadcast();
@@ -39,7 +39,7 @@ contract L1Deployer is Script {
         address relayer = msg.sender;
 
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
-        dappLinkPauser = new Pauser();
+        dappLinkPauser = new L1Pauser();
         dETH = new DETH();
         oracleManager = new OracleManager();
         oracleQuorumManager = new OracleQuorumManager();
@@ -65,6 +65,17 @@ contract L1Deployer is Script {
         vm.writeFile("data/proxyReturnsReceiver.addr", vm.toString(address(proxyReturnsReceiver)));
         vm.writeFile("data/proxyStakingManager.addr", vm.toString(address(proxyStakingManager)));
         vm.writeFile("data/proxyUnstakeRequestsManager.addr", vm.toString(address(proxyUnstakeRequestsManager)));
+
+        //====================== initialize ======================
+//        {
+//            L1Pauser.Init memory initInfo = L1Pauser.Init({
+//                admin: msg.sender,
+//                pauser: msg.sender,
+//                unpauser: msg.sender
+//             });
+//            L1Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
+//        }
+
 
         vm.stopBroadcast();
     }

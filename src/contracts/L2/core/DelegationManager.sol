@@ -6,14 +6,13 @@ import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
-import "../../access/Pausable.sol";
+import "../../access/interface/IL2Pauser.sol";
 import "../../libraries/EIP1271SignatureUtils.sol";
 import "./DelegationManagerStorage.sol";
 import "../interfaces/ISlashManager.sol";
 
 
-
-contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, DelegationManagerStorage, ReentrancyGuardUpgradeable {
+contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManagerStorage, ReentrancyGuardUpgradeable {
     uint8 internal constant PAUSED_NEW_DELEGATION = 0;
 
     uint8 internal constant PAUSED_ENTER_WITHDRAWAL_QUEUE = 1;
@@ -27,6 +26,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
     IStrategyManager public strategyManager;
 
     ISlashManager public slasher;
+
+    IL2Pauser public pauser;
 
     modifier onlyStrategyManager() {
         require(
@@ -46,21 +47,20 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     function initialize(
         address initialOwner,
-        IPauserRegistry _pauserRegistry,
-        uint256 initialPausedStatus,
         uint256 _minWithdrawalDelayBlocks,
         IStrategy[] calldata _strategies,
         uint256[] calldata _withdrawalDelayBlocks,
         IStrategyManager _strategyManager,
-        ISlashManager _slasher
+        ISlashManager _slasher,
+        IL2Pauser _pauser
     ) external initializer {
-        _initializePauser(_pauserRegistry, initialPausedStatus);
         _DOMAIN_SEPARATOR = _calculateDomainSeparator();
         _transferOwnership(initialOwner);
         _setMinWithdrawalDelayBlocks(_minWithdrawalDelayBlocks);
         _setStrategyWithdrawalDelayBlocks(_strategies, _withdrawalDelayBlocks);
         strategyManager = _strategyManager;
         slasher = _slasher;
+        pauser = _pauser;
     }
 
     /*******************************************************************************
@@ -127,7 +127,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         _delegate(staker, operator, approverSignatureAndExpiry, approverSalt);
     }
 
-    function undelegate(address staker) external onlyWhenNotPaused(PAUSED_ENTER_WITHDRAWAL_QUEUE) returns (bytes32[] memory withdrawalRoots) {
+    function undelegate(address staker) external returns (bytes32[] memory withdrawalRoots) {
+        require(pauser.isUnDelegate(), "DelegationManager:undelegate paused");
         require(isDelegated(staker), "DelegationManager.undelegate: staker must be delegated to undelegate");
         require(!isOperator(staker), "DelegationManager.undelegate: operators cannot be undelegated");
         require(staker != address(0), "DelegationManager.undelegate: cannot undelegate zero address");
@@ -173,7 +174,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
 
     function queueWithdrawals(
         QueuedWithdrawalParams[] calldata queuedWithdrawalParams
-    ) external onlyWhenNotPaused(PAUSED_ENTER_WITHDRAWAL_QUEUE) returns (bytes32[] memory) {
+    ) external returns (bytes32[] memory) {
+        require(pauser.isStakerWithdraw(), "DelegationManager:queueWithdrawals paused");
         bytes32[] memory withdrawalRoots = new bytes32[](queuedWithdrawalParams.length);
         address operator = delegatedTo[msg.sender];
 
@@ -196,7 +198,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         IERC20[] calldata tokens,
         uint256 middlewareTimesIndex,
         bool receiveAsTokens
-    ) external onlyWhenNotPaused(PAUSED_EXIT_WITHDRAWAL_QUEUE) nonReentrant {
+    ) external nonReentrant {
+       require(pauser.isStakerWithdraw(), "DelegationManager:completeQueuedWithdrawal paused");
         _completeQueuedWithdrawal(withdrawal, tokens, middlewareTimesIndex, receiveAsTokens);
     }
 
@@ -205,7 +208,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         IERC20[][] calldata tokens,
         uint256[] calldata middlewareTimesIndexes,
         bool[] calldata receiveAsTokens
-    ) external onlyWhenNotPaused(PAUSED_EXIT_WITHDRAWAL_QUEUE) nonReentrant {
+    ) external nonReentrant {
+        require(pauser.isStakerWithdraw(), "DelegationManager:completeQueuedWithdrawals paused");
         for (uint256 i = 0; i < withdrawals.length; ++i) {
             _completeQueuedWithdrawal(withdrawals[i], tokens[i], middlewareTimesIndexes[i], receiveAsTokens[i]);
         }
@@ -305,7 +309,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, Pausable, Deleg
         address operator,
         SignatureWithExpiry memory approverSignatureAndExpiry,
         bytes32 approverSalt
-    ) internal onlyWhenNotPaused(PAUSED_NEW_DELEGATION) {
+    ) internal {
+        require(pauser.isDelegate(), "DelegationManager:isDelegate paused");
         require(!isDelegated(staker), "DelegationManager._delegate: staker is already actively delegated");
         require(isOperator(operator), "DelegationManager._delegate: operator is not registered in DappLink");
 

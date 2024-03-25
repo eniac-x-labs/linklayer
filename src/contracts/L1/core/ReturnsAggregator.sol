@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
-import {IPauserRead} from "../../access/interface/IPauser.sol";
-import {IOracleReadRecord, OracleRecord} from "../interfaces/IOracleManager.sol";
-import {IStakingManagerReturnsWrite} from "../interfaces/IStakingManager.sol";
-import {IReturnsAggregator} from "../interfaces/IReturnsAggregator.sol";
+import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
+import { IL1Pauser } from "../../access/interface/IL1Pauser.sol";
+import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
+import { IStakingManagerReturnsWrite } from "../interfaces/IStakingManager.sol";
+import { IReturnsAggregator } from "../interfaces/IReturnsAggregator.sol";
 
-import {ReturnsReceiver} from "./ReturnsReceiver.sol";
+import { ReturnsReceiver } from "./ReturnsReceiver.sol";
 
 
 contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable, ProtocolEvents, IReturnsAggregator {
@@ -31,7 +31,7 @@ contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable,
 
     ReturnsReceiver public executionLayerReceiver;
 
-    IPauserRead public pauser;
+    IL1Pauser public pauser;
 
     address payable public feesReceiver;
 
@@ -41,7 +41,7 @@ contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable,
         address admin;
         address manager;
         IOracleReadRecord oracle;
-        IPauserRead pauser;
+        IL1Pauser pauser;
         ReturnsReceiver consensusLayerReceiver;
         ReturnsReceiver executionLayerReceiver;
         IStakingManagerReturnsWrite staking;

@@ -14,33 +14,12 @@ import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
 import { IDepositContract } from "../interfaces/IDepositContract.sol";
 import { IDETH } from "../interfaces/IDETH.sol";
 import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
-import { IPauserRead } from "../../access/interface/IPauser.sol";
-import { IStakingManager, IStakingManagerReturnsWrite, IStakingManagerInitiationRead } from "../interfaces/IStakingManager.sol";
+import {IL1Pauser} from "../../access/interface/IL1Pauser.sol";
+import { StakingManagerStorage } from "./StakingManagerStorage.sol";
 import { UnstakeRequest, IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
 
 
-contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IStakingManager, ProtocolEvents {
-    bytes32 public constant STAKING_MANAGER_ROLE = keccak256("STAKING_MANAGER_ROLE");
-
-    bytes32 public constant ALLOCATOR_SERVICE_ROLE = keccak256("ALLOCATER_SERVICE_ROLE");
-
-    bytes32 public constant INITIATOR_SERVICE_ROLE = keccak256("INITIATOR_SERVICE_ROLE");
-
-    bytes32 public constant STAKING_ALLOWLIST_MANAGER_ROLE = keccak256("STAKING_ALLOWLIST_MANAGER_ROLE");
-
-    bytes32 public constant STAKING_ALLOWLIST_ROLE = keccak256("STAKING_ALLOWLIST_ROLE");
-
-    bytes32 public constant TOP_UP_ROLE = keccak256("TOP_UP_ROLE");
-
-    struct ValidatorParams {
-        uint256 operatorID;
-        uint256 depositAmount;
-        bytes pubkey;
-        bytes withdrawalCredentials;
-        bytes signature;
-        bytes32 depositDataRoot;
-    }
-
+contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, StakingManagerStorage, ProtocolEvents {
     mapping(bytes pubkey => bool exists) public usedValidators;
 
     uint256 public totalDepositedInValidators;
@@ -71,7 +50,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
 
     IOracleReadRecord public oracle;
 
-    IPauserRead public pauser;
+    IL1Pauser public pauser;
 
     IUnstakeRequestsManager public unstakeRequestsManager;
 
@@ -85,7 +64,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
 
     uint256 public maximumDETHSupply;
 
-    address public relayer;
+    address public dapplinkBridge;
 
     struct Init {
         address admin;
@@ -94,11 +73,11 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         address initiatorService;
         address returnsAggregator;
         address withdrawalWallet;
-        address relayer;
+        address dapplinkBridge;
         IDETH dETH;
         IDepositContract depositContract;
         IOracleReadRecord oracle;
-        IPauserRead pauser;
+        IL1Pauser pauser;
         IUnstakeRequestsManager unstakeRequestsManager;
     }
 
@@ -123,7 +102,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         pauser = init.pauser;
         returnsAggregator = init.returnsAggregator;
         unstakeRequestsManager = init.unstakeRequestsManager;
-        relayer = init.relayer;
+        dapplinkBridge = init.dapplinkBridge;
         withdrawalWallet = init.withdrawalWallet;
 
         minimumStakeBound = 0.1 ether;
@@ -136,7 +115,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         maximumDETHSupply = 1024 ether;
     }
 
-    function stake(uint256 minDETHAmount) external onlyRelayer payable {
+    function stake(uint256 minDETHAmount, uint256 stakeAmount) external onlyDappLinkBridge payable {
         if (pauser.isStakingPaused()) {
             revert Paused();
         }
@@ -145,22 +124,20 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
             _checkRole(STAKING_ALLOWLIST_ROLE);
         }
 
-        if (msg.value < minimumStakeBound) {
-            revert MinimumStakeBoundNotSatisfied();
+        if (stakeAmount < minimumDepositAmount) {
+            revert MinimumDepositAmountNotSatisfied();
         }
 
-        uint256 dETHMintAmount = ethToDETH(msg.value);
+        uint256 dETHMintAmount = ethToDETH(stakeAmount);
         if (dETHMintAmount + dETH.totalSupply() > maximumDETHSupply) {
             revert MaximumDETHSupplyExceeded();
         }
+
         if (dETHMintAmount < minDETHAmount) {
             revert StakeBelowMinimumDETHAmount(dETHMintAmount, minDETHAmount);
         }
-
-        unallocatedETH += msg.value;
-
-        emit Staked(msg.sender, msg.value, dETHMintAmount);
-        dETH.mint(msg.sender, dETHMintAmount);
+        unallocatedETH += stakeAmount;
+        emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }
 
     function unstakeRequest(uint128 methAmount, uint128 minETHAmount) external returns (uint256) {
@@ -183,14 +160,14 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
 
         uint256 requestID = unstakeRequestsManager.create({requester: msg.sender, dETHLocked: methAmount, ethRequested: ethAmount});
 
-        emit UnstakeRequested({id: requestID, staker: msg.sender, ethAmount: ethAmount, dETHLocked: methAmount});
+        emit UnstakeRequested({id: requestID, staker: msg.sender, ethAmount: ethAmount, dETHLocked: methAmount}); // event
 
         SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), methAmount);
 
         return requestID;
     }
     
-    function claimUnstakeRequest(uint256 unstakeRequestID, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyRelayer {
+    function claimUnstakeRequest(uint256 unstakeRequestID, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
@@ -368,9 +345,9 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, IS
         _;
     }
 
-     modifier onlyRelayer() {
-        if (msg.sender != address(relayer)) {
-            revert NotRelayer();
+     modifier onlyDappLinkBridge() {
+        if (msg.sender != address(dapplinkBridge)) {
+            revert NotDappLinkBridge();
         }
         _;
     }

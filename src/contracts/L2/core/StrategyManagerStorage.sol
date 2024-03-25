@@ -15,8 +15,6 @@ abstract contract StrategyManagerStorage is IStrategyManager {
 
     uint8 internal constant MAX_STAKER_STRATEGY_LIST_LENGTH = 32;
 
-    // system contracts
-
     bytes32 internal _DOMAIN_SEPARATOR;
 
     mapping(address => uint256) public nonces;
