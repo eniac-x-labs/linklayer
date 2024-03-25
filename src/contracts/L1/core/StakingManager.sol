@@ -140,31 +140,44 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }
 
-    function unstakeRequest(uint128 methAmount, uint128 minETHAmount) external returns (uint256) {
-        return _unstakeRequest(methAmount, minETHAmount);
+    function unstakeRequest(uint128 dethAmount, uint128 minETHAmount) external  {
+        _unstakeRequest(dethAmount, minETHAmount);
     }
     
-    function _unstakeRequest(uint128 methAmount, uint128 minETHAmount) internal returns (uint256) {
+    function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount) internal {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
 
-        if (methAmount < minimumUnstakeBound) {
+        if (dethAmount < minimumUnstakeBound) {
             revert MinimumUnstakeBoundNotSatisfied();
         }
 
-        uint128 ethAmount = uint128(dETHToETH(methAmount));
-        if (ethAmount < minETHAmount) {
-            revert UnstakeBelowMinimudETHAmount(ethAmount, minETHAmount);
+        if (laveDethAmount > 0) {
+            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), laveDethAmount);
+            emit UnstakeLaveAmount(msg.sender, laveDethAmount);
+            batchDethAmount += laveDethAmount;
+            laveDethAmount = 0;
         }
 
-        uint256 requestID = unstakeRequestsManager.create({requester: msg.sender, dETHLocked: methAmount, ethRequested: ethAmount});
+        batchDethAmount += dethAmount;
+        if (batchDethAmount >= maximumDepositAmount) {
+            laveDethAmount = batchDethAmount - maximumDepositAmount;
+            uint256 transferAmount = batchDethAmount - laveDethAmount;
+            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), transferAmount);
 
-        emit UnstakeRequested({id: requestID, staker: msg.sender, ethAmount: ethAmount, dETHLocked: methAmount}); // event
+            uint128 batchEthAmount = uint128(dETHToETH(batchDethAmount));
 
-        SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), methAmount);
+            uint256 batchRequestID = unstakeRequestsManager.create({requester: dapplinkBridge, dETHLocked: batchDethAmount, ethRequested: batchEthAmount});
 
-        return requestID;
+            emit UnstakeBatchRequest({batchId: batchRequestID, batchEthAmount: batchEthAmount, batchDETHLocked: batchDethAmount});
+
+            batchDethAmount = 0;
+
+        } else {
+            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
+            emit UnstakeSingle({staker: msg.sender, dETHLocked: dethAmount});
+        }
     }
     
     function claimUnstakeRequest(uint256 unstakeRequestID, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {

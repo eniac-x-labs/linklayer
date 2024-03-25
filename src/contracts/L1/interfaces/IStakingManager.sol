@@ -41,7 +41,12 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
 
 
     event Staked(address indexed staker, uint256 ethAmount, uint256 dETHAmount);
-    event UnstakeRequested(uint256 indexed id, address indexed staker, uint256 ethAmount, uint256 dETHLocked);
+    event UnstakeLaveAmount(address indexed staker, uint256 dETHLocked);
+    event UnstakeSingle(address indexed staker, uint256 dETHLocked);
+
+    event UnstakeBatchRequest(uint256 indexed batchId, uint256 batchEthAmount, uint256 batchDETHLocked);
+
+
     event UnstakeRequestClaimed(uint256 indexed id, address indexed staker, address indexed bridge, uint256 sourceChainId, uint256 destChainId);
     event ValidatorInitiated(bytes32 indexed id, uint256 indexed operatorID, bytes pubkey, uint256 amountDeposited);
     event AllocatedETHToUnstakeRequestsManager(uint256 amount);
