@@ -32,7 +32,6 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
     error PreviouslyUsedValidator();
     error ZeroAddress();
     error InvalidDepositRoot(bytes32);
-    error StakeBelowMinimumDETHAmount(uint256 methAmount, uint256 expectedMinimum);
     error UnstakeBelowMinimudETHAmount(uint256 ethAmount, uint256 expectedMinimum);
 
     error InvalidWithdrawalCredentialsWrongLength(uint256);
