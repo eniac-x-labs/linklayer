@@ -13,14 +13,12 @@ cache
 artifacts
 *.lock
 #Foundry files
-out
 
 *.DS_Store
 
 broadcast
 
 # Deployment tools
-/data
 .idea
 /lib
 lib
