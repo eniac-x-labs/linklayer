@@ -161,11 +161,11 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         }
 
         batchDethAmount += dethAmount;
-        if (batchDethAmount % maximumDepositAmount > 0) {
+        if (batchDethAmount / maximumDepositAmount > 0) {
 
-            uint256 modTimes = batchDethAmount % maximumDepositAmount;
+            uint256 modTimes = batchDethAmount / maximumDepositAmount; 
 
-            uint256 transferDethAmount = modTimes * maximumDepositAmount;
+            uint256 transferDethAmount = modTimes * maximumDepositAmount; 
 
             laveDethAmount = batchDethAmount - transferDethAmount;
 
