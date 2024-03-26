@@ -115,7 +115,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         maximumDETHSupply = 1024 ether;
     }
 
-    function stake(uint256 minDETHAmount, uint256 stakeAmount) external onlyDappLinkBridge payable {
+    function stake(uint256 stakeAmount) external onlyDappLinkBridge payable {
         if (pauser.isStakingPaused()) {
             revert Paused();
         }
@@ -133,9 +133,6 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
             revert MaximumDETHSupplyExceeded();
         }
 
-        if (dETHMintAmount < minDETHAmount) {
-            revert StakeBelowMinimumDETHAmount(dETHMintAmount, minDETHAmount);
-        }
         unallocatedETH += stakeAmount;
         emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }

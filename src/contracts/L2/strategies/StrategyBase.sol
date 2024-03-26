@@ -189,7 +189,7 @@ contract StrategyBase is Initializable, IStrategy {
             bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
-                msg.value,
+                amountBridge,
                 abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
             return success;
