@@ -137,11 +137,11 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }
 
-    function unstakeRequest(uint128 dethAmount) external  {
-        _unstakeRequest(dethAmount);
+    function unstakeRequest(uint128 dethAmount, address l2Strategy) external  {
+        _unstakeRequest(dethAmount, l2Strategy);
     }
 
-    function _unstakeRequest(uint128 dethAmount) internal {
+    function _unstakeRequest(uint128 dethAmount, address l2Strategy) internal {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
@@ -168,7 +168,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
             SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), transferDethAmount);
 
-            emit UnstakeSingle({staker: msg.sender, dETHLocked: transferDethAmount});
+            emit UnstakeSingle({staker: msg.sender, dETHLocked: transferDethAmount, l2Strategy: l2Strategy});
 
             uint128 batchEthAmount = uint128(dETHToETH(maximumDepositAmount));
 
@@ -180,7 +180,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
         } else {
             SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
-            emit UnstakeSingle({staker: msg.sender, dETHLocked: dethAmount});
+            emit UnstakeSingle({staker: msg.sender, dETHLocked: dethAmount, l2Strategy: l2Strategy});
         }
     }
     

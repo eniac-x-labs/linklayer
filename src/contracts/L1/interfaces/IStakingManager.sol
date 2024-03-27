@@ -41,7 +41,7 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
 
     event Staked(address indexed staker, uint256 ethAmount, uint256 dETHAmount);
     event UnstakeLaveAmount(address indexed staker, uint256 dETHLocked);
-    event UnstakeSingle(address indexed staker, uint256 dETHLocked);
+    event UnstakeSingle(address indexed staker, uint256 dETHLocked, address l2Strategy);
 
     event UnstakeBatchRequest(uint256 indexed batchId, uint256 batchEthAmount, uint256 batchDETHLocked);
 
