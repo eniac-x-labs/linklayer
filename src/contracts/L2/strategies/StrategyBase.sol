@@ -190,7 +190,7 @@ contract StrategyBase is Initializable, IStrategy {
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to)", sourceChainId, destChainId, l1StakingManagerAddr)
+                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
             return success;
         }
@@ -204,7 +204,7 @@ contract StrategyBase is Initializable, IStrategy {
                 bridge,
                 gasLimit,
                 msg.value,
-                abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,to,value)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
+                abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
             return success;
         }
