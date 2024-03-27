@@ -195,23 +195,23 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
 
     function completeQueuedWithdrawal(
         Withdrawal calldata withdrawal,
-        IERC20[] calldata tokens,
+        IERC20 weth,
         uint256 middlewareTimesIndex,
-        bool receiveAsTokens
+        bool receiveAsWeth
     ) external nonReentrant {
        require(pauser.isStakerWithdraw(), "DelegationManager:completeQueuedWithdrawal paused");
-        _completeQueuedWithdrawal(withdrawal, tokens, middlewareTimesIndex, receiveAsTokens);
+        _completeQueuedWithdrawal(withdrawal, weth, middlewareTimesIndex, receiveAsWeth);
     }
 
     function completeQueuedWithdrawals(
         Withdrawal[] calldata withdrawals,
-        IERC20[][] calldata tokens,
+        IERC20 weth,
         uint256[] calldata middlewareTimesIndexes,
-        bool[] calldata receiveAsTokens
+        bool[] calldata receiveAsWeth
     ) external nonReentrant {
         require(pauser.isStakerWithdraw(), "DelegationManager:completeQueuedWithdrawals paused");
         for (uint256 i = 0; i < withdrawals.length; ++i) {
-            _completeQueuedWithdrawal(withdrawals[i], tokens[i], middlewareTimesIndexes[i], receiveAsTokens[i]);
+            _completeQueuedWithdrawal(withdrawals[i], weth, middlewareTimesIndexes[i], receiveAsWeth[i]);
         }
     }
 
@@ -363,9 +363,9 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
 
     function _completeQueuedWithdrawal(
         Withdrawal calldata withdrawal,
-        IERC20[] calldata tokens,
+        IERC20 weth,
         uint256,
-        bool receiveAsTokens
+        bool receiveAsWeth
     ) internal {
         bytes32 withdrawalRoot = calculateWithdrawalRoot(withdrawal);
 
@@ -384,27 +384,20 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
             "DelegationManager._completeQueuedWithdrawal: only withdrawer can complete action"
         );
 
-        if (receiveAsTokens) {
-            require(
-                tokens.length == withdrawal.strategies.length, 
-                "DelegationManager._completeQueuedWithdrawal: input length mismatch"
-            );
-        }
-
         delete pendingWithdrawals[withdrawalRoot];
 
-        if (receiveAsTokens) {
+        if (receiveAsWeth) {
             for (uint256 i = 0; i < withdrawal.strategies.length; ) {
                 require(
                     withdrawal.startBlock + strategyWithdrawalDelayBlocks[withdrawal.strategies[i]] <= block.number,
                     "DelegationManager._completeQueuedWithdrawal: withdrawalDelayBlocks period has not yet passed for this strategy"
                 );
 
-                _withdrawSharesAsTokens({
+                _withdrawSharesAsWeth({
                     withdrawer: msg.sender,
                     strategy: withdrawal.strategies[i],
                     shares: withdrawal.shares[i],
-                    token: tokens[i]
+                    weth: weth
                 });
                 unchecked { ++i; }
             }
@@ -415,7 +408,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
                     withdrawal.startBlock + strategyWithdrawalDelayBlocks[withdrawal.strategies[i]] <= block.number, 
                     "DelegationManager._completeQueuedWithdrawal: withdrawalDelayBlocks period has not yet passed for this strategy"
                 );
-                strategyManager.addShares(msg.sender, tokens[i], withdrawal.strategies[i], withdrawal.shares[i]);
+                strategyManager.addShares(msg.sender, weth, withdrawal.strategies[i], withdrawal.shares[i]);
                 if (currentOperator != address(0)) {
                     _increaseOperatorShares({
                         operator: currentOperator,
@@ -488,8 +481,8 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
         return withdrawalRoot;
     }
 
-    function _withdrawSharesAsTokens(address withdrawer, IStrategy strategy, uint256 shares, IERC20 token) internal {
-        strategyManager.withdrawSharesAsTokens(withdrawer, strategy, shares, token);
+    function _withdrawSharesAsWeth(address withdrawer, IStrategy strategy, uint256 shares, IERC20 weth) internal {
+        strategyManager.withdrawSharesAsWeth(withdrawer, strategy, shares, weth);
     }
 
     function _setMinWithdrawalDelayBlocks(uint256 _minWithdrawalDelayBlocks) internal {

@@ -24,7 +24,7 @@ contract StrategyBase is Initializable, IStrategy {
 
     IStrategyManager public strategyManager;
 
-    IERC20 public underlyingToken;
+    IERC20 public stakingWeth;
 
     address public relayer;
 
@@ -47,37 +47,37 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function initialize(
-        IERC20 _underlyingToken,
+        IERC20 _stakingWeth,
         address  _relayer,
         IStrategyManager _strategyManager,
         IL2Pauser _pauser
     ) public virtual initializer {
-        _initializeStrategyBase(_underlyingToken, _pauser);
+        _initializeStrategyBase(_stakingWeth, _pauser);
         strategyManager = _strategyManager;
-        relayer = relayer;
+        relayer = _relayer;
     }
 
     function _initializeStrategyBase(
-        IERC20 _underlyingToken,
+        IERC20 _stakingWeth,
         IL2Pauser _pauser
     ) internal onlyInitializing {
-        underlyingToken = _underlyingToken;
+        stakingWeth = _stakingWeth;
         pauser = _pauser;
     }
 
     function deposit(
-        IERC20 token,
+        IERC20 weth,
         uint256 amount
     ) external virtual override onlyStrategyManager returns (uint256 newShares) {
 
         require(pauser.isStrategyDeposit(), "StrategyBase:deposit paused");
 
-        _beforeDeposit(token, amount);
+        _beforeDeposit(weth);
 
         uint256 priorTotalShares = totalShares;
 
         uint256 virtualShareAmount = priorTotalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualTokenBalance = ethWethBalance() + BALANCE_OFFSET;
 
         uint256 virtualPriorTokenBalance = virtualTokenBalance - amount;
         newShares = (amount * virtualShareAmount) / virtualPriorTokenBalance;
@@ -90,12 +90,12 @@ contract StrategyBase is Initializable, IStrategy {
 
     function withdraw(
         address recipient,
-        IERC20 token,
+        IERC20 weth,
         uint256 amountShares
     ) external virtual override onlyStrategyManager {
         require(pauser.isStrategyWithdraw(), "StrategyBase:withdraw paused");
 
-        _beforeWithdrawal(recipient, token, amountShares);
+        _beforeWithdrawal(weth);
 
         uint256 priorTotalShares = totalShares;
 
@@ -106,30 +106,30 @@ contract StrategyBase is Initializable, IStrategy {
 
         uint256 virtualPriorTotalShares = priorTotalShares + SHARES_OFFSET;
 
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualTokenBalance = ethWethBalance() + BALANCE_OFFSET;
 
         uint256 amountToSend = (virtualTokenBalance * amountShares) / virtualPriorTotalShares;
 
         totalShares = priorTotalShares - amountShares;
 
-        _afterWithdrawal(recipient, token, amountToSend);
+        _afterWithdrawal(recipient, weth, amountToSend);
     }
 
-    function _beforeDeposit(IERC20 token, uint256 amount) internal virtual {
-        require(token == underlyingToken || address(token) == ETHAddress.EthAddress, "StrategyBase.deposit: Can only deposit underlyingToken and eth");
-    }
-
-
-    function _beforeWithdrawal(address recipient, IERC20 token, uint256 amountShares) internal virtual {
-        require(token == underlyingToken || address(token) == ETHAddress.EthAddress, "StrategyBase.withdraw: Can only withdraw the strategy token and eth");
+    function _beforeDeposit(IERC20 weth) internal virtual {
+        require(weth == stakingWeth || address(weth) == ETHAddress.EthAddress, "StrategyBase.deposit: Can only deposit stakingWeth and eth");
     }
 
 
-    function _afterWithdrawal(address recipient, IERC20 token, uint256 amountToSend) internal virtual {
-        if (address(token) == ETHAddress.EthAddress) {
+    function _beforeWithdrawal(IERC20 weth) internal virtual {
+        require(weth == stakingWeth || address(weth) == ETHAddress.EthAddress, "StrategyBase.withdraw: Can only withdraw the strategy weth and eth");
+    }
+
+
+    function _afterWithdrawal(address recipient, IERC20 weth, uint256 amountToSend) internal virtual {
+        if (address(weth) == ETHAddress.EthAddress) {
              payable(recipient).transfer(amountToSend);
         } else {
-             token.safeTransfer(recipient, amountToSend);
+             weth.safeTransfer(recipient, amountToSend);
         }
     }
 
@@ -137,55 +137,55 @@ contract StrategyBase is Initializable, IStrategy {
         return "Base Strategy implementation to inherit from for more complex implementations";
     }
 
-    function sharesToUnderlyingView(uint256 amountShares) public view virtual override returns (uint256) {
+    function sharesToStakingView(uint256 amountShares) public view virtual override returns (uint256) {
         uint256 virtualTotalShares = totalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualTokenBalance = ethWethBalance() + BALANCE_OFFSET;
         return (virtualTokenBalance * amountShares) / virtualTotalShares;
     }
 
-    function sharesToUnderlying(uint256 amountShares) public view virtual override returns (uint256) {
-        return sharesToUnderlyingView(amountShares);
+    function sharesToStaking(uint256 amountShares) public view virtual override returns (uint256) {
+        return sharesToStakingView(amountShares);
     }
 
-    function underlyingToSharesView(uint256 amountUnderlying) public view virtual returns (uint256) {
+    function stakingToSharesView(uint256 amountStaking) public view virtual returns (uint256) {
 
         uint256 virtualTotalShares = totalShares + SHARES_OFFSET;
-        uint256 virtualTokenBalance = _tokenBalance() + BALANCE_OFFSET;
+        uint256 virtualTokenBalance = ethWethBalance() + BALANCE_OFFSET;
 
-        return (amountUnderlying * virtualTotalShares) / virtualTokenBalance;
+        return (amountStaking * virtualTotalShares) / virtualTokenBalance;
     }
 
-    function underlyingToShares(uint256 amountUnderlying) external view virtual returns (uint256) {
-        return underlyingToSharesView(amountUnderlying);
+    function stakingToShares(uint256 amountStaking) external view virtual returns (uint256) {
+        return stakingToSharesView(amountStaking);
     }
 
-    function userUnderlyingView(address user) external view virtual returns (uint256) {
-        return sharesToUnderlyingView(shares(user));
+    function userStakingView(address user) external view virtual returns (uint256) {
+        return sharesToStakingView(shares(user));
     }
 
-    function userUnderlying(address user) external virtual returns (uint256) {
-        return sharesToUnderlying(shares(user));
+    function userStaking(address user) external virtual returns (uint256) {
+        return sharesToStaking(shares(user));
     }
 
     function shares(address user) public view virtual returns (uint256) {
         return strategyManager.stakerStrategyShares(user, IStrategy(address(this)));
     }
 
-    function _tokenBalance() internal view virtual returns (uint256) {
-        return underlyingToken.balanceOf(address(this)) + address(this).balance;
+    function ethWethBalance() internal view virtual returns (uint256) {
+        return stakingWeth.balanceOf(address(this)) + address(this).balance;
     }
 
-    function tokenETHBalance() external view virtual returns (uint256) {
+    function ETHBalance() external view virtual returns (uint256) {
         return address(this).balance;
     }
 
-    function tokenWETHBalance() external view virtual returns (uint256) {
-        return underlyingToken.balanceOf(address(this));
+    function WETHBalance() external view virtual returns (uint256) {
+        return stakingWeth.balanceOf(address(this));
     }
 
     function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, uint256 gasLimit) external payable onlyRelayer returns (bool) {
-        if (underlyingToken.balanceOf(address(this)) >= 32e18 ) {
-            uint256 amountBridge = (underlyingToken.balanceOf(address(this)) / 32e18) * 32e18;
+        if (stakingWeth.balanceOf(address(this)) >= 32e18 ) {
+            uint256 amountBridge = (stakingWeth.balanceOf(address(this)) / 32e18) * 32e18;
             bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,

@@ -98,7 +98,7 @@ contract L2Deployer is Script {
 
         {
             address initialStrategyWhitelister = msg.sender;
-            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, IDelegationManager(address(delegationManager)), ISlashManager(address(slashManager)), dappLinkPauser);
+            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, relayer, IDelegationManager(address(delegationManager)), ISlashManager(address(slashManager)), dappLinkPauser);
         }
 
         {
