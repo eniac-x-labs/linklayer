@@ -137,11 +137,11 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }
 
-    function unstakeRequest(uint128 dethAmount, uint128 minETHAmount) external  {
-        _unstakeRequest(dethAmount, minETHAmount);
+    function unstakeRequest(uint128 dethAmount) external  {
+        _unstakeRequest(dethAmount);
     }
 
-    function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount) internal {
+    function _unstakeRequest(uint128 dethAmount) internal {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }

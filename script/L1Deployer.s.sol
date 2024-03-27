@@ -35,10 +35,7 @@ contract L1Deployer is Script {
 
     function run() external {
         vm.startBroadcast();
-
-        address dappLinkMultisig = msg.sender;
         address admin = msg.sender;
-        address relayer = msg.sender;
 
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
         dappLinkPauser = new L1Pauser();
