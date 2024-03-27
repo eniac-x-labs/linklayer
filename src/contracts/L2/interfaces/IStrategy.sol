@@ -5,25 +5,25 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 interface IStrategy {
-    function deposit(IERC20 token, uint256 amount) external returns (uint256);
+    function deposit(IERC20 weth, uint256 amount) external returns (uint256);
 
-    function withdraw(address recipient, IERC20 token, uint256 amountShares) external;
+    function withdraw(address recipient, IERC20 weth, uint256 amountShares) external;
 
-    function sharesToUnderlying(uint256 amountShares) external returns (uint256);
+    function sharesToStaking(uint256 amountShares) external returns (uint256);
 
-    function underlyingToShares(uint256 amountUnderlying) external returns (uint256);
+    function stakingToShares(uint256 amountStaking) external returns (uint256);
 
-    function userUnderlying(address user) external returns (uint256);
+    function userStaking(address user) external returns (uint256);
 
     function shares(address user) external view returns (uint256);
 
-    function sharesToUnderlyingView(uint256 amountShares) external view returns (uint256);
+    function sharesToStakingView(uint256 amountShares) external view returns (uint256);
 
-    function underlyingToSharesView(uint256 amountUnderlying) external view returns (uint256);
+    function stakingToSharesView(uint256 amountStaking) external view returns (uint256);
 
-    function userUnderlyingView(address user) external view returns (uint256);
+    function userStakingView(address user) external view returns (uint256);
 
-    function underlyingToken() external view returns (IERC20);
+    function stakingWeth() external view returns (IERC20);
 
     function totalShares() external view returns (uint256);
 
@@ -33,8 +33,8 @@ interface IStrategy {
 
     function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, uint256 gasLimit) external payable returns (bool);
 
-    function tokenETHBalance() external view returns (uint256);
+    function ETHBalance() external view returns (uint256);
 
-    function tokenWETHBalance() external view returns (uint256);
+    function WETHBalance() external view returns (uint256);
 
 }

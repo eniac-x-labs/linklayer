@@ -7,7 +7,7 @@ import "./IDelegationManager.sol";
 
 
 interface IStrategyManager {
-    event Deposit(address staker, IERC20 token, IStrategy strategy, uint256 shares);
+    event Deposit(address staker, IERC20 weth, IStrategy strategy, uint256 shares);
 
     event UpdatedThirdPartyTransfersForbidden(IStrategy strategy, bool value);
 
@@ -17,13 +17,15 @@ interface IStrategyManager {
 
     event StrategyRemovedFromDepositWhitelist(IStrategy strategy);
 
-    function depositWETHIntoStrategy(IStrategy strategy, IERC20 token, uint256 amount) external returns (uint256 shares);
+    event MigrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares);
+
+    function depositWETHIntoStrategy(IStrategy strategy, IERC20 weth, uint256 amount) external returns (uint256 shares);
 
     function depositETHIntoStrategy(IStrategy strategy, uint256 amount) external returns (uint256 shares);
 
     function depositWETHIntoStrategyWithSignature(
         IStrategy strategy,
-        IERC20 token,
+        IERC20 weth,
         uint256 amount,
         address staker,
         uint256 expiry,
@@ -40,9 +42,9 @@ interface IStrategyManager {
 
     function removeShares(address staker, IStrategy strategy, uint256 shares) external;
 
-    function addShares(address staker, IERC20 token, IStrategy strategy, uint256 shares) external;
+    function addShares(address staker, IERC20 weth, IStrategy strategy, uint256 shares) external;
     
-    function withdrawSharesAsTokens(address recipient, IStrategy strategy, uint256 shares, IERC20 token) external;
+    function withdrawSharesAsWeth(address recipient, IStrategy strategy, uint256 shares, IERC20 weth) external;
 
     function stakerStrategyShares(address user, IStrategy strategy) external view returns (uint256 shares);
 
@@ -82,4 +84,6 @@ interface IStrategyManager {
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external returns (bool, bytes32);
 
     function calculateWithdrawalRoot(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external pure returns (bytes32);
+
+    function  migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares) external returns (bool);
 }
