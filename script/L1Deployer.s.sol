@@ -66,6 +66,7 @@ contract L1Deployer is Script {
                 oracle: IOracleManager(address(proxyOracleManager))
              });
             L1Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
+            L1Pauser(address(proxyDappLinkPauser)).pauseAll();
         }
 
         {
