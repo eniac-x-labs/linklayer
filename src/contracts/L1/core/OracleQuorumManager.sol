@@ -104,7 +104,7 @@ contract OracleQuorumManager is
         return newHash;
     }
 
-    function receiveRecord(OracleRecord calldata record) external onlyRole(SERVICE_ORACLE_REPORTER) {
+    function receiveRecord(OracleRecord calldata record,  address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external onlyRole(SERVICE_ORACLE_REPORTER) {
         bytes32 recordHash = _trackReceivedRecord(msg.sender, record);
 
         if (!_hasReachedQuroum(record.updateEndBlock, recordHash)) {
@@ -117,7 +117,7 @@ contract OracleQuorumManager is
 
         emit ReportQuorumReached(record.updateEndBlock);
 
-        try oracle.receiveRecord(record) {}
+        try oracle.receiveRecord(record, bridge, l2Strategy, sourceChainId, destChainId) {}
         catch (bytes memory reason) {
             emit OracleRecordReceivedError(reason);
         }

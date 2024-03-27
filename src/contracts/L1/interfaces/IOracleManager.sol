@@ -13,7 +13,7 @@ struct OracleRecord {
 }
 
 interface IOracleWrite {
-    function receiveRecord(OracleRecord calldata record) external;
+    function receiveRecord(OracleRecord calldata newRecord, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external;
 }
 
 interface IOracleReadRecord {
@@ -50,5 +50,5 @@ interface IOracleManager is IOracleWrite, IOracleReadRecord, IOracleReadPending 
         bytes32 indexed reasonHash, string reason, OracleRecord record, uint256 value, uint256 bound
     );
 
-     function setOracleUpdater(address newUpdater) external;
+    function setOracleUpdater(address newUpdater) external;
 }

@@ -86,10 +86,10 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
 
         maxConsensusLayerLossPPM = 1000;
 
-        _pushRecord(OracleRecord(0, uint64(staking.initializationBlockNumber()), 0, 0, 0, 0, 0, 0));
+        _pushRecord(OracleRecord(0, uint64(staking.initializationBlockNumber()), 0, 0, 0, 0, 0, 0), address(init.manager), address(init.manager), 0, 0);
     }
 
-    function receiveRecord(OracleRecord calldata newRecord) external {
+    function receiveRecord(OracleRecord calldata newRecord, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external {
         if (pauser.isSubmitOracleRecordsPaused()) {
             revert Paused();
         }
@@ -124,10 +124,10 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
             pauser.pauseAll();
             return;
         }
-        _pushRecord(newRecord);
+        _pushRecord(newRecord, bridge, l2Strategy, sourceChainId, destChainId);
     }
 
-    function modifyExistingRecord(uint256 idx, OracleRecord calldata record) external onlyRole(ORACLE_MODIFIER_ROLE) {
+    function modifyExistingRecord(uint256 idx, OracleRecord calldata record, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external onlyRole(ORACLE_MODIFIER_ROLE) {
         if (idx == 0) {
             revert CannotModifyInitialRecord();
         }
@@ -163,7 +163,11 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
             aggregator.processReturns({
                 rewardAmount: missingRewards,
                 principalAmount: missingPrincipals,
-                shouldIncludeELRewards: false
+                shouldIncludeELRewards: false,
+                bridge: bridge,
+                l2Strategy: l2Strategy,
+                sourceChainId: sourceChainId,
+                destChainId: destChainId
             });
         }
     }
@@ -284,23 +288,27 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
         return ("", 0, 0);
     }
 
-    function _pushRecord(OracleRecord memory record) internal {
+    function _pushRecord(OracleRecord memory record, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) internal {
         emit OracleRecordAdded(_records.length, record);
         _records.push(record);
 
         aggregator.processReturns({
             rewardAmount: record.windowWithdrawnRewardAmount,
             principalAmount: record.windowWithdrawnPrincipalAmount,
-            shouldIncludeELRewards: true
+            shouldIncludeELRewards: true,
+            bridge: bridge,
+            l2Strategy: l2Strategy,
+            sourceChainId: sourceChainId,
+            destChainId: destChainId
         });
     }
 
-    function acceptPendingUpdate() external onlyRole(ORACLE_PENDING_UPDATE_RESOLVER_ROLE) {
+    function acceptPendingUpdate(address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external onlyRole(ORACLE_PENDING_UPDATE_RESOLVER_ROLE) {
         if (!hasPendingUpdate) {
             revert NoUpdatePending();
         }
 
-        _pushRecord(_pendingUpdate);
+        _pushRecord(_pendingUpdate, bridge, l2Strategy, sourceChainId, destChainId);
         _resetPending();
     }
 
