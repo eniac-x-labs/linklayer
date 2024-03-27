@@ -71,6 +71,7 @@ contract L2Deployer is Script {
                 unpauser: msg.sender
              });
             L2Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
+            L2Pauser(address(proxyDappLinkPauser)).pauseAll();
         }
 
         {
@@ -109,6 +110,7 @@ contract L2Deployer is Script {
             StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
         }
 
+        vm.writeFile("data/L2/proxyDappLinkPauser.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
         vm.writeFile("data/L2/proxyL1RewardManager.addr", vm.toString(address(proxyL1RewardManager)));
