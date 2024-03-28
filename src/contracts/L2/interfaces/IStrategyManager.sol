@@ -21,7 +21,7 @@ interface IStrategyManager {
 
     function depositWETHIntoStrategy(IStrategy strategy, IERC20 weth, uint256 amount) external returns (uint256 shares);
 
-    function depositETHIntoStrategy(IStrategy strategy, uint256 amount) external returns (uint256 shares);
+    function depositETHIntoStrategy(IStrategy strategy) external payable returns (uint256 shares);
 
     function depositWETHIntoStrategyWithSignature(
         IStrategy strategy,
