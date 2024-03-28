@@ -17,6 +17,9 @@ import "@/contracts/access/L2Pauser.sol";
 import "../src/contracts/access/proxy/Proxy.sol";
 
 
+import "@/test/DappLinkToken.sol";
+
+
 import "forge-std/Script.sol";
 
 
@@ -33,6 +36,7 @@ contract L2Deployer is Script {
     StrategyBase      public daStrategy;
     SlashManager      public slashManager;
     L2Pauser          public dappLinkPauser;
+    DappLinkToken     public dappLinkToken;
 
     function run() external {
         vm.startBroadcast();
@@ -49,6 +53,7 @@ contract L2Deployer is Script {
         socialStrategy = new StrategyBase();
         gamingStrategy = new StrategyBase();
         daStrategy = new StrategyBase();
+        dappLinkToken = new DappLinkToken();
 
 
         //====================== deploy ======================
@@ -61,9 +66,12 @@ contract L2Deployer is Script {
         Proxy proxySocialStrategy = new Proxy(address(socialStrategy), address(admin), "");
         Proxy proxyGamingStrategy = new Proxy(address(gamingStrategy), address(admin), "");
         Proxy proxyDaStrategy = new Proxy(address(daStrategy), address(admin), "");
+        Proxy proxyDappLinkToken = new Proxy(address(dappLinkToken), address(admin), "");
 
 
         //====================== initialize ======================
+        DappLinkToken(address(proxyDappLinkToken)).initialize(address(admin));
+
         {
             L2Pauser.Init memory initInfo = L2Pauser.Init({
                 admin: msg.sender,
@@ -71,7 +79,7 @@ contract L2Deployer is Script {
                 unpauser: msg.sender
              });
             L2Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
-            L2Pauser(address(proxyDappLinkPauser)).pauseAll();
+            L2Pauser(address(proxyDappLinkPauser)).unpauseAll();
         }
 
         {
