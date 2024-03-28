@@ -287,7 +287,9 @@ contract StrategyManager is
         uint256 amount
     ) internal onlyStrategiesWhitelistedForDeposit(strategy) returns (uint256 shares) {
 
-        payable(address(strategy)).transfer(amount);
+        (bool sent, ) = payable(address(strategy)).call{value: msg.value}("");
+
+        require(sent, "StrategyManager._depositETHIntoStrategy: send eth to strategy fail");
 
         shares = strategy.deposit(IERC20(ETHAddress.EthAddress), amount);
 
