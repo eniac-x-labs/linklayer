@@ -87,20 +87,18 @@ contract StrategyManager is
         IERC20 weth,
         uint256 amount
     ) external nonReentrant returns (uint256 shares) {
-        // require(pauser.isStrategyDeposit(), "StrategyManager:depositWETHIntoStrategy paused");
+        // require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositWETHIntoStrategy paused");
 
         shares = _depositWETHIntoStrategy(msg.sender, strategy, weth, amount);
     }
 
     function depositETHIntoStrategy(
-        IStrategy strategy,
-        uint256 amount
-    ) external nonReentrant returns (uint256 shares) {
+        IStrategy strategy
+    ) external payable nonReentrant returns (uint256 shares) {
 
-       //  require(pauser.isStrategyDeposit(), "StrategyManager:depositETHIntoStrategy paused");
+       //  require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositETHIntoStrategy paused");
 
-        shares = _depositETHIntoStrategy(msg.sender, strategy, amount);
-
+        shares = _depositETHIntoStrategy(msg.sender, strategy);
 
     }
 
@@ -154,7 +152,7 @@ contract StrategyManager is
 
         EIP1271SignatureUtils.checkSignature_EIP1271(staker, digestHash, signature);
 
-        shares = _depositETHIntoStrategy(staker, strategy, amount);
+        shares = _depositETHIntoStrategy(staker, strategy);
     }
 
     function removeShares(
@@ -283,15 +281,14 @@ contract StrategyManager is
 
     function _depositETHIntoStrategy(
         address staker,
-        IStrategy strategy,
-        uint256 amount
+        IStrategy strategy
     ) internal onlyStrategiesWhitelistedForDeposit(strategy) returns (uint256 shares) {
 
         (bool sent, ) = payable(address(strategy)).call{value: msg.value}("");
 
         require(sent, "StrategyManager._depositETHIntoStrategy: send eth to strategy fail");
 
-        shares = strategy.deposit(IERC20(ETHAddress.EthAddress), amount);
+        shares = strategy.deposit(IERC20(ETHAddress.EthAddress), msg.value);
 
         _addShares(staker, IERC20(ETHAddress.EthAddress), strategy, shares);
 
