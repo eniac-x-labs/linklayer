@@ -111,13 +111,12 @@ contract L2Deployer is Script {
         }
 
         {
-            address WethAddress = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
-            IERC20 underlyingToken = IERC20(WethAddress);
-            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
-            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
-            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxySocialStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxyGamingStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxyDaStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
         }
 
+        vm.writeFile("data/L2/proxyDappLinkToken.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxyDappLinkPauser.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
