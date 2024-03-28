@@ -15,10 +15,6 @@ abstract contract StakingManagerStorage is IStakingManager {
 
     bytes32 public constant TOP_UP_ROLE = keccak256("TOP_UP_ROLE");
 
-    uint256 public batchDethAmount;
-
-    uint256 public laveDethAmount;
-
     struct ValidatorParams {
         uint256 operatorID;
         uint256 depositAmount;

@@ -16,7 +16,7 @@ import { IDETH } from "../interfaces/IDETH.sol";
 import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
 import {IL1Pauser} from "../../access/interface/IL1Pauser.sol";
 import { StakingManagerStorage } from "./StakingManagerStorage.sol";
-import { UnstakeRequest, IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
+import { IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
 
 
 contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, StakingManagerStorage, ProtocolEvents {
@@ -115,7 +115,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         maximumDETHSupply = 1024 ether;
     }
 
-    function stake(uint256 minDETHAmount, uint256 stakeAmount) external onlyDappLinkBridge payable {
+    function stake(uint256 stakeAmount) external onlyDappLinkBridge payable {
         if (pauser.isStakingPaused()) {
             revert Paused();
         }
@@ -133,19 +133,16 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
             revert MaximumDETHSupplyExceeded();
         }
 
-        if (dETHMintAmount < minDETHAmount) {
-            revert StakeBelowMinimumDETHAmount(dETHMintAmount, minDETHAmount);
-        }
         unallocatedETH += stakeAmount;
         emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
     }
 
-    function unstakeRequest(uint128 dethAmount, uint128 minETHAmount) external  {
-        _unstakeRequest(dethAmount, minETHAmount);
+    function unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) external  {
+        _unstakeRequest(dethAmount, minETHAmount, l2Strategy, destChainId);
     }
 
-    function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount) internal {
-        if (pauser.isUnstakeRequestsAndClaimsPaused()) {
+    function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) internal {
+       if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
 
@@ -153,50 +150,29 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
             revert MinimumUnstakeBoundNotSatisfied();
         }
 
-        if (laveDethAmount > 0) {
-            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), laveDethAmount);
-            emit UnstakeLaveAmount(msg.sender, laveDethAmount);
-            batchDethAmount += laveDethAmount;
-            laveDethAmount = 0;
+        uint128 ethAmount = uint128(dETHToETH(dethAmount));
+        if (ethAmount < minETHAmount) {
+            revert UnstakeBelowMinimudETHAmount(ethAmount, minETHAmount);
         }
 
-        batchDethAmount += dethAmount;
-        if (batchDethAmount / maximumDepositAmount > 0) {
+        unstakeRequestsManager.create({requester: msg.sender, l2Strategy: l2Strategy, dETHLocked: dethAmount, ethRequested: ethAmount, destChainId: destChainId});
 
-            uint256 modTimes = batchDethAmount / maximumDepositAmount; 
+        emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId});
 
-            uint256 transferDethAmount = modTimes * maximumDepositAmount; 
+        SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
 
-            laveDethAmount = batchDethAmount - transferDethAmount;
-
-            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), transferDethAmount);
-
-            emit UnstakeSingle({staker: msg.sender, dETHLocked: transferDethAmount});
-
-            uint128 batchEthAmount = uint128(dETHToETH(maximumDepositAmount));
-
-            uint256 batchRequestID = unstakeRequestsManager.create({requester: dapplinkBridge, dETHLocked: batchDethAmount, ethRequested: batchEthAmount});
-
-            emit UnstakeBatchRequest({batchId: batchRequestID, batchEthAmount: batchEthAmount, batchDETHLocked: batchDethAmount});
-
-            batchDethAmount = 0;
-
-        } else {
-            SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
-            emit UnstakeSingle({staker: msg.sender, dETHLocked: dethAmount});
-        }
     }
     
-    function claimUnstakeRequest(uint256 unstakeRequestID, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
+    function claimUnstakeRequest(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
         if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
-        emit UnstakeRequestClaimed(unstakeRequestID, msg.sender, bridge, sourceChainId, destChainId);
-        unstakeRequestsManager.claim(unstakeRequestID, msg.sender, bridge, sourceChainId, destChainId, gasLimit);
+        emit UnstakeRequestClaimed(msg.sender, l2Strategy, bridge, sourceChainId, destChainId);
+        unstakeRequestsManager.claim(l2Strategy, bridge, sourceChainId, destChainId, gasLimit);
     }
     
-    function unstakeRequestInfo(uint256 unstakeRequestID) external view returns (bool, uint256) {
-        return unstakeRequestsManager.requestInfo(unstakeRequestID);
+    function unstakeRequestInfo(uint256 destChainId, address l2strategy) external view returns (bool, uint256) {
+        return unstakeRequestsManager.requestInfo(destChainId, l2strategy);
     }
     
     function reclaimAllocatedETHSurplus() external onlyRole(STAKING_MANAGER_ROLE) {

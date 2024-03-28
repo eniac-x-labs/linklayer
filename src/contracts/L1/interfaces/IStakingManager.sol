@@ -32,7 +32,6 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
     error PreviouslyUsedValidator();
     error ZeroAddress();
     error InvalidDepositRoot(bytes32);
-    error StakeBelowMinimumDETHAmount(uint256 methAmount, uint256 expectedMinimum);
     error UnstakeBelowMinimudETHAmount(uint256 ethAmount, uint256 expectedMinimum);
 
     error InvalidWithdrawalCredentialsWrongLength(uint256);
@@ -42,12 +41,8 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
 
     event Staked(address indexed staker, uint256 ethAmount, uint256 dETHAmount);
     event UnstakeLaveAmount(address indexed staker, uint256 dETHLocked);
-    event UnstakeSingle(address indexed staker, uint256 dETHLocked);
-
-    event UnstakeBatchRequest(uint256 indexed batchId, uint256 batchEthAmount, uint256 batchDETHLocked);
-
-
-    event UnstakeRequestClaimed(uint256 indexed id, address indexed staker, address indexed bridge, uint256 sourceChainId, uint256 destChainId);
+    event UnstakeRequested(address indexed staker, address indexed l2Strategy, uint256 ethAmount, uint256 dETHLocked, uint256 destChainId);
+    event UnstakeRequestClaimed(address indexed staker, address indexed l2Strategy, address indexed bridge, uint256 sourceChainId, uint256 destChainId);
     event ValidatorInitiated(bytes32 indexed id, uint256 indexed operatorID, bytes pubkey, uint256 amountDeposited);
     event AllocatedETHToUnstakeRequestsManager(uint256 amount);
     event AllocatedETHToDeposits(uint256 amount);

@@ -17,6 +17,9 @@ import "@/contracts/access/L2Pauser.sol";
 import "../src/contracts/access/proxy/Proxy.sol";
 
 
+import "@/test/DappLinkToken.sol";
+
+
 import "forge-std/Script.sol";
 
 
@@ -33,6 +36,7 @@ contract L2Deployer is Script {
     StrategyBase      public daStrategy;
     SlashManager      public slashManager;
     L2Pauser          public dappLinkPauser;
+    DappLinkToken     public dappLinkToken;
 
     function run() external {
         vm.startBroadcast();
@@ -49,6 +53,7 @@ contract L2Deployer is Script {
         socialStrategy = new StrategyBase();
         gamingStrategy = new StrategyBase();
         daStrategy = new StrategyBase();
+        dappLinkToken = new DappLinkToken();
 
 
         //====================== deploy ======================
@@ -61,9 +66,12 @@ contract L2Deployer is Script {
         Proxy proxySocialStrategy = new Proxy(address(socialStrategy), address(admin), "");
         Proxy proxyGamingStrategy = new Proxy(address(gamingStrategy), address(admin), "");
         Proxy proxyDaStrategy = new Proxy(address(daStrategy), address(admin), "");
+        Proxy proxyDappLinkToken = new Proxy(address(dappLinkToken), address(admin), "");
 
 
         //====================== initialize ======================
+        DappLinkToken(address(proxyDappLinkToken)).initialize(address(admin));
+
         {
             L2Pauser.Init memory initInfo = L2Pauser.Init({
                 admin: msg.sender,
@@ -71,52 +79,53 @@ contract L2Deployer is Script {
                 unpauser: msg.sender
              });
             L2Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
+            L2Pauser(address(proxyDappLinkPauser)).unpauseAll();
         }
 
         {
             IStrategy[] memory _strategies = new IStrategy[](3);
-            _strategies[0] = IStrategy(address(socialStrategy));
-            _strategies[1] = IStrategy(address(gamingStrategy));
-            _strategies[2] = IStrategy(address(daStrategy));
+            _strategies[0] = IStrategy(address(proxySocialStrategy));
+            _strategies[1] = IStrategy(address(proxyGamingStrategy));
+            _strategies[2] = IStrategy(address(proxyDaStrategy));
              uint256[] memory _withdrawalDelayBlocks = new uint256[](3);
              _withdrawalDelayBlocks[0]= 10;
              _withdrawalDelayBlocks[1]= 10;
              _withdrawalDelayBlocks[2]= 10;
              uint256 _minWithdrawalDelayBlocks = 5;
-             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, strategyManager, slashManager, dappLinkPauser);
+             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, IStrategyManager(address(proxyStrategyManager)), ISlashManager(address(slashManager)), dappLinkPauser);
         }
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
 
-        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), strategyManager);
+        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), IStrategyManager(address(proxyStrategyManager)));
 
         {
             address dappLinkAddr = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
             IERC20 dappLinkToken = IERC20(dappLinkAddr);
-            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), delegationManager, strategyManager, dappLinkToken);
+            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), IDelegationManager(address(delegationManager)), IStrategyManager(address(proxyStrategyManager)), dappLinkToken);
         }
 
         {
             address initialStrategyWhitelister = msg.sender;
-            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, delegationManager, slashManager, dappLinkPauser);
+            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, relayer, IDelegationManager(address(delegationManager)), ISlashManager(address(slashManager)), dappLinkPauser);
         }
 
         {
-            address WethAddress = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
-            IERC20 underlyingToken = IERC20(WethAddress);
-            StrategyBase(address(proxySocialStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
-            StrategyBase(address(proxyGamingStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
-            StrategyBase(address(proxyDaStrategy)).initialize(underlyingToken, relayer, strategyManager, dappLinkPauser);
+            StrategyBase(address(proxySocialStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxyGamingStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxyDaStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
         }
 
-        vm.writeFile("data/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
-        vm.writeFile("data/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
-        vm.writeFile("data/proxyL1RewardManager.addr", vm.toString(address(proxyL1RewardManager)));
-        vm.writeFile("data/proxyL2RewardManager.addr", vm.toString(address(proxyL2RewardManager)));
-        vm.writeFile("data/proxyStrategyManager.addr", vm.toString(address(proxyStrategyManager)));
-        vm.writeFile("data/proxySocialStrategy.addr", vm.toString(address(proxySocialStrategy)));
-        vm.writeFile("data/proxyGamingStrategy.addr", vm.toString(address(proxyGamingStrategy)));
-        vm.writeFile("data/proxyDaStrategy.addr", vm.toString(address(proxyDaStrategy)));
+        vm.writeFile("data/L2/proxyDappLinkToken.addr", vm.toString(address(proxyDelegationManager)));
+        vm.writeFile("data/L2/proxyDappLinkPauser.addr", vm.toString(address(proxyDelegationManager)));
+        vm.writeFile("data/L2/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
+        vm.writeFile("data/L2/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
+        vm.writeFile("data/L2/proxyL1RewardManager.addr", vm.toString(address(proxyL1RewardManager)));
+        vm.writeFile("data/L2/proxyL2RewardManager.addr", vm.toString(address(proxyL2RewardManager)));
+        vm.writeFile("data/L2/proxyStrategyManager.addr", vm.toString(address(proxyStrategyManager)));
+        vm.writeFile("data/L2/proxySocialStrategy.addr", vm.toString(address(proxySocialStrategy)));
+        vm.writeFile("data/L2/proxyGamingStrategy.addr", vm.toString(address(proxyGamingStrategy)));
+        vm.writeFile("data/L2/proxyDaStrategy.addr", vm.toString(address(proxyDaStrategy)));
 
 
         vm.stopBroadcast();

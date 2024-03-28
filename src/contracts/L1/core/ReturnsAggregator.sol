@@ -16,6 +16,7 @@ import { IStakingManagerReturnsWrite } from "../interfaces/IStakingManager.sol";
 import { IReturnsAggregator } from "../interfaces/IReturnsAggregator.sol";
 
 import { ReturnsReceiver } from "./ReturnsReceiver.sol";
+import "../../libraries/SafeCall.sol";
 
 
 contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable, ProtocolEvents, IReturnsAggregator {
@@ -36,6 +37,8 @@ contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable,
     address payable public feesReceiver;
 
     uint16 public feesBasisPoints;
+
+    uint256 public gasLimit = 21000;
 
     struct Init {
         address admin;
@@ -67,7 +70,7 @@ contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable,
         feesBasisPoints = 1_000;
     }
 
-    function processReturns(uint256 rewardAmount, uint256 principalAmount, bool shouldIncludeELRewards)
+    function processReturns(uint256 rewardAmount, uint256 principalAmount, bool shouldIncludeELRewards, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId)
         external
         assertBalanceUnchanged
     {
@@ -88,7 +91,12 @@ contract ReturnsAggregator is Initializable, AccessControlEnumerableUpgradeable,
 
         address payable self = payable(address(this));
         if (elRewards > 0) {
-            executionLayerReceiver.transfer(self, elRewards);
+            SafeCall.callWithMinGas(
+                bridge,
+                gasLimit,
+                elRewards,
+                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l2Strategy)
+            );
         }
         if (clTotal > 0) {
             consensusLayerReceiver.transfer(self, clTotal);

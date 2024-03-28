@@ -110,14 +110,14 @@ interface IDelegationManager is ISignatureUtils {
 
     function completeQueuedWithdrawal(
         Withdrawal calldata withdrawal,
-        IERC20[] calldata tokens,
+        IERC20 weth,
         uint256 middlewareTimesIndex,
         bool receiveAsTokens
     ) external;
 
     function completeQueuedWithdrawals(
         Withdrawal[] calldata withdrawals,
-        IERC20[][] calldata tokens,
+        IERC20 weth,
         uint256[] calldata middlewareTimesIndexes,
         bool[] calldata receiveAsTokens
     ) external;
