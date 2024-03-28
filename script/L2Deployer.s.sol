@@ -92,7 +92,7 @@ contract L2Deployer is Script {
              _withdrawalDelayBlocks[1]= 10;
              _withdrawalDelayBlocks[2]= 10;
              uint256 _minWithdrawalDelayBlocks = 5;
-             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, IStrategyManager(address(proxyStrategyManager)), ISlashManager(address(slashManager)), dappLinkPauser);
+             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, IStrategyManager(address(proxyStrategyManager)), ISlashManager(address(proxySlashManager)), L2Pauser(address(proxyDappLinkPauser)));
         }
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
@@ -100,24 +100,22 @@ contract L2Deployer is Script {
         L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), IStrategyManager(address(proxyStrategyManager)));
 
         {
-            address dappLinkAddr = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
-            IERC20 dappLinkToken = IERC20(dappLinkAddr);
-            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), IDelegationManager(address(delegationManager)), IStrategyManager(address(proxyStrategyManager)), dappLinkToken);
+            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), IDelegationManager(address(proxyDelegationManager)), IStrategyManager(address(proxyStrategyManager)), DappLinkToken(address(proxyDappLinkToken)));
         }
 
         {
             address initialStrategyWhitelister = msg.sender;
-            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, relayer, IDelegationManager(address(delegationManager)), ISlashManager(address(slashManager)), dappLinkPauser);
+            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, relayer, IDelegationManager(address(proxyDelegationManager)), ISlashManager(address(proxySlashManager)), L2Pauser(address(proxyDappLinkPauser)));
         }
 
         {
-            StrategyBase(address(proxySocialStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
-            StrategyBase(address(proxyGamingStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
-            StrategyBase(address(proxyDaStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), dappLinkPauser);
+            StrategyBase(address(proxySocialStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), L2Pauser(address(proxyDappLinkPauser)));
+            StrategyBase(address(proxyGamingStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), L2Pauser(address(proxyDappLinkPauser)));
+            StrategyBase(address(proxyDaStrategy)).initialize(IERC20(address(proxyDappLinkToken)), relayer, IStrategyManager(address(proxyStrategyManager)), L2Pauser(address(proxyDappLinkPauser)));
         }
 
-        vm.writeFile("data/L2/proxyDappLinkToken.addr", vm.toString(address(proxyDelegationManager)));
-        vm.writeFile("data/L2/proxyDappLinkPauser.addr", vm.toString(address(proxyDelegationManager)));
+        vm.writeFile("data/L2/proxyDappLinkToken.addr", vm.toString(address(proxyDappLinkToken)));
+        vm.writeFile("data/L2/proxyDappLinkPauser.addr", vm.toString(address(proxyDappLinkPauser)));
         vm.writeFile("data/L2/proxyDelegationManager.addr", vm.toString(address(proxyDelegationManager)));
         vm.writeFile("data/L2/proxySlashManager.addr", vm.toString(address(proxySlashManager)));
         vm.writeFile("data/L2/proxyL1RewardManager.addr", vm.toString(address(proxyL1RewardManager)));

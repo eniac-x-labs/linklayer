@@ -87,7 +87,7 @@ contract StrategyManager is
         IERC20 weth,
         uint256 amount
     ) external nonReentrant returns (uint256 shares) {
-        // require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositWETHIntoStrategy paused");
+        require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositWETHIntoStrategy paused");
 
         shares = _depositWETHIntoStrategy(msg.sender, strategy, weth, amount);
     }
@@ -96,7 +96,7 @@ contract StrategyManager is
         IStrategy strategy
     ) external payable nonReentrant returns (uint256 shares) {
 
-       //  require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositETHIntoStrategy paused");
+        require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositETHIntoStrategy paused");
 
         shares = _depositETHIntoStrategy(msg.sender, strategy);
 
