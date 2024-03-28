@@ -70,7 +70,7 @@ contract StrategyBase is Initializable, IStrategy {
         uint256 amount
     ) external virtual override onlyStrategyManager returns (uint256 newShares) {
 
-        // require(pauser.isStrategyDeposit(), "StrategyBase:deposit paused");
+        require(pauser.isStrategyDeposit(), "StrategyBase:deposit paused");
 
         _beforeDeposit(weth);
 
