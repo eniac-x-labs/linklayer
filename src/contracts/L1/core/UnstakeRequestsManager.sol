@@ -15,8 +15,7 @@ import {IOracleReadRecord} from "../interfaces/IOracleManager.sol";
 import {
     IUnstakeRequestsManager,
     IUnstakeRequestsManagerWrite,
-    IUnstakeRequestsManagerRead,
-    UnstakeRequest
+    IUnstakeRequestsManagerRead
 } from "../interfaces/IUnstakeRequestsManager.sol";
 import {IStakingManagerReturnsWrite} from "../interfaces/IStakingManager.sol";
 import "../../libraries/SafeCall.sol";
@@ -46,7 +45,11 @@ contract UnstakeRequestsManager is
     
     uint256 public latestCumulativeETHRequested;
     
-    UnstakeRequest[] internal _unstakeRequests;
+    mapping(uint256 => mapping(address => uint256)) public l2ChainStrategyAmount;
+    mapping(uint256 => mapping(address => uint256)) public dEthLockedAmount;
+    mapping(uint256 => mapping(address => uint256)) public l2ChainStrategyBlockNumber;
+    mapping(uint256 => mapping(address => uint256)) public currentRequestedCumulativeETH;
+
 
     struct Init {
         address admin;
@@ -75,128 +78,55 @@ contract UnstakeRequestsManager is
         _grantRole(REQUEST_CANCELLER_ROLE, init.requestCanceller);
     }
     
-    function create(address requester, uint256 dETHLocked, uint256 ethRequested)
+    function create(address requester, address l2Strategy, uint256 dETHLocked, uint256 ethRequested, uint256 destChainId)
         external
         onlyStakingContract
-        returns (uint256)
     {
         uint256 currentCumulativeETHRequested = latestCumulativeETHRequested + ethRequested;
-        uint256 requestID = _unstakeRequests.length;
-        UnstakeRequest memory unstakeRequest = UnstakeRequest({
-            id: uint128(requestID),
-            requester: requester,
-            dETHLocked: dETHLocked,
-            ethRequested: ethRequested,
-            cumulativeETHRequested: currentCumulativeETHRequested,
-            blockNumber: uint64(block.number)
-        });
-        _unstakeRequests.push(unstakeRequest);
+
+        l2ChainStrategyAmount[destChainId][l2Strategy] += ethRequested;
+        dEthLockedAmount[destChainId][l2Strategy] += dETHLocked;
+        l2ChainStrategyBlockNumber[destChainId][l2Strategy] = block.number;
+        currentRequestedCumulativeETH[destChainId][l2Strategy] = currentCumulativeETHRequested;
 
         latestCumulativeETHRequested = currentCumulativeETHRequested;
+
         emit UnstakeRequestCreated(
-            requestID, requester, dETHLocked, ethRequested, currentCumulativeETHRequested, block.number
+            requester, l2Strategy, dETHLocked, ethRequested, currentCumulativeETHRequested, block.number, destChainId
         );
-        return requestID;
     }
 
-    function claim(uint256 requestID, address requester, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract returns (bool) {
-        UnstakeRequest memory request = _unstakeRequests[requestID];
+    function claim(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract returns (bool) {
 
-        if (request.requester == address(0)) {
-            revert AlreadyClaimed();
-        }
+        uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][l2Strategy];
+        uint256 ethRequested = l2ChainStrategyAmount[destChainId][l2Strategy];
+        uint256 dETHLocked = dEthLockedAmount[destChainId][l2Strategy];
 
-        if (requester != request.requester) {
-            revert NotRequester();
-        }
+        delete l2ChainStrategyAmount[destChainId][l2Strategy];
+        delete dEthLockedAmount[destChainId][l2Strategy];
+        delete l2ChainStrategyBlockNumber[destChainId][l2Strategy];
 
-        if (!_isFinalized(request)) {
+         if (!_isFinalized(csBlockNumber)) {
             revert NotFinalized();
         }
 
-        if (request.cumulativeETHRequested > allocatedETHForClaims) {
-            revert NotEnoughFunds(request.cumulativeETHRequested, allocatedETHForClaims);
-        }
-
-        delete _unstakeRequests[requestID];
-        totalClaimed += request.ethRequested;
-
         emit UnstakeRequestClaimed({
-            id: requestID,
-            requester: requester,
-            dETHLocked: request.dETHLocked,
-            ethRequested: request.ethRequested,
-            cumulativeETHRequested: request.cumulativeETHRequested,
-            blockNumber: request.blockNumber
+            l2strategy: l2Strategy,
+            ethRequested: ethRequested,
+            dETHLocked: dETHLocked,
+            destChainId: destChainId,
+            csBlockNumber: csBlockNumber
         });
-        dETH.burn(request.dETHLocked);
+        dETH.burn(dETHLocked);
         bool success = SafeCall.callWithMinGas(
             bridge,
             gasLimit,
-            request.ethRequested,
-            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, request.ethRequested)
+            ethRequested,
+            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, ethRequested)
         );
         return success;
     }
 
-
-    function cancelUnfinalizedRequests(uint256 maxCancel) external onlyRole(REQUEST_CANCELLER_ROLE) returns (bool) {
-        uint256 length = _unstakeRequests.length;
-        if (length == 0) {
-            return false;
-        }
-
-        if (length < maxCancel) {
-            maxCancel = length;
-        }
-
- 
-        UnstakeRequest[] memory requests = new UnstakeRequest[](maxCancel);
-
-        uint256 numCancelled = 0;
-        uint256 amountETHCancelled = 0;
-        while (numCancelled < maxCancel) {
-            UnstakeRequest memory request = _unstakeRequests[_unstakeRequests.length - 1];
-
-            if (_isFinalized(request)) {
-                break;
-            }
-
-            _unstakeRequests.pop();
-            requests[numCancelled] = request;
-            ++numCancelled;
-            amountETHCancelled += request.ethRequested;
-
-            emit UnstakeRequestCancelled(
-                request.id,
-                request.requester,
-                request.dETHLocked,
-                request.ethRequested,
-                request.cumulativeETHRequested,
-                request.blockNumber
-            );
-        }
-
-        if (amountETHCancelled > 0) {
-            latestCumulativeETHRequested -= amountETHCancelled;
-        }
-
-        bool hasMore;
-        uint256 remainingRequestsLength = _unstakeRequests.length;
-        if (remainingRequestsLength == 0) {
-            hasMore = false;
-        } else {
-            UnstakeRequest memory latestRemainingRequest = _unstakeRequests[remainingRequestsLength - 1];
-            hasMore = !_isFinalized(latestRemainingRequest);
-        }
-
-        for (uint256 i = 0; i < numCancelled; i++) {
-            SafeERC20.safeTransfer(dETH, requests[i].requester, requests[i].dETHLocked);
-        }
-
-        return hasMore;
-    }
-    
     function allocateETH() external payable onlyStakingContract {
         allocatedETHForClaims += msg.value;
     }
@@ -210,23 +140,25 @@ contract UnstakeRequestsManager is
         stakingContract.receiveFromUnstakeRequestsManager{value: toSend}();
     }
 
-    function nextRequestId() external view returns (uint256) {
-        return _unstakeRequests.length;
+    function requestByID(uint256 destChainId, address l2Strategy) external view returns (uint256, uint256, uint256){
+        uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][l2Strategy];
+        uint256 ethRequested = l2ChainStrategyAmount[destChainId][l2Strategy];
+        uint256 dETHLocked = dEthLockedAmount[destChainId][l2Strategy];
+        return(ethRequested, dETHLocked, csBlockNumber);
     }
 
-    function requestByID(uint256 requestID) external view returns (UnstakeRequest memory) {
-        return _unstakeRequests[requestID];
-    }
+    function requestInfo(uint256 destChainId, address l2Strategy) external view returns (bool, uint256) {
+        uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][l2Strategy];
+        uint256 ethRequested = l2ChainStrategyAmount[destChainId][l2Strategy];
+        uint256 dETHLocked = dEthLockedAmount[destChainId][l2Strategy];
+        uint256 cumulativeETHRequested = currentRequestedCumulativeETH[destChainId][l2Strategy];
 
-    function requestInfo(uint256 requestID) external view returns (bool, uint256) {
-        UnstakeRequest memory request = _unstakeRequests[requestID];
-
-        bool isFinalized = _isFinalized(request);
+        bool isFinalized = _isFinalized(csBlockNumber);
         uint256 claimableAmount = 0;
         
-        uint256 allocatedEthRequired = request.cumulativeETHRequested - request.ethRequested;
+        uint256 allocatedEthRequired = cumulativeETHRequested - ethRequested;
         if (allocatedEthRequired < allocatedETHForClaims) {
-            claimableAmount = Math.min(allocatedETHForClaims - allocatedEthRequired, request.ethRequested);
+            claimableAmount = Math.min(allocatedETHForClaims - allocatedEthRequired,  ethRequested);
         }
         return (isFinalized, claimableAmount);
     }
@@ -261,8 +193,8 @@ contract UnstakeRequestsManager is
         );
     }
     
-    function _isFinalized(UnstakeRequest memory request) internal view returns (bool) {
-        return (request.blockNumber + numberOfBlocksToFinalize) <= oracle.latestRecord().updateEndBlock;
+    function _isFinalized(uint256 blockNumber) internal view returns (bool) {
+        return (blockNumber + numberOfBlocksToFinalize) <= oracle.latestRecord().updateEndBlock;
     }
 
     modifier onlyStakingContract() {

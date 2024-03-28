@@ -3,21 +3,11 @@ pragma solidity ^0.8.20;
 
 import { StakingManager } from "@/contracts/L1/core/StakingManager.sol";
 
-struct UnstakeRequest {
-    uint64 blockNumber;
-    address requester;
-    uint128 id;
-    uint256 dETHLocked;
-    uint256 ethRequested;
-    uint256 cumulativeETHRequested;
-}
 
 interface IUnstakeRequestsManagerWrite {
-    function create(address requester, uint256 dETHLocked, uint256 ethRequested) external returns (uint256);
+    function create(address requester, address l2Strategy, uint256 dETHLocked, uint256 ethRequested, uint256 destChainId) external;
 
-    function claim(uint256 requestID, address requester, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external returns (bool);
-
-    function cancelUnfinalizedRequests(uint256 maxCancel) external returns (bool);
+    function claim(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit)  external returns (bool);
 
     function allocateETH() external payable;
 
@@ -25,9 +15,9 @@ interface IUnstakeRequestsManagerWrite {
 }
 
 interface IUnstakeRequestsManagerRead {
-    function requestByID(uint256 requestID) external view returns (UnstakeRequest memory);
+    function requestByID(uint256 destChainId, address l2strategy) external view returns (uint256, uint256, uint256);
 
-    function requestInfo(uint256 requestID) external view returns (bool, uint256);
+    function requestInfo(uint256 destChainId, address l2strategy) external view returns (bool, uint256);
 
     function allocatedETHSurplus() external view returns (uint256);
 
@@ -45,21 +35,21 @@ interface IUnstakeRequestsManager is IUnstakeRequestsManagerRead, IUnstakeReques
     error NotStakingManagerContract();
 
     event UnstakeRequestCreated(
-        uint256 indexed id,
         address indexed requester,
+        address indexed strategy,
         uint256 dETHLocked,
         uint256 ethRequested,
         uint256 cumulativeETHRequested,
-        uint256 blockNumber
+        uint256 blockNumber,
+        uint256 destChainId
     );
 
     event UnstakeRequestClaimed(
-        uint256 indexed id,
-        address indexed requester,
-        uint256 dETHLocked,
+        address indexed l2strategy,
         uint256 ethRequested,
-        uint256 cumulativeETHRequested,
-        uint256 blockNumber
+        uint256 dETHLocked,
+        uint256 indexed destChainId,
+        uint256 indexed csBlockNumber
     );
 
     event UnstakeRequestCancelled(
