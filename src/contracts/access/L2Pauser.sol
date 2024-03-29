@@ -56,7 +56,7 @@ contract L2Pauser is Initializable, AccessControlEnumerableUpgradeable, L2Pauser
         _setIsStakerWithdraw(isPaused);
     }
 
-    function pauseAll() external {
+    function pauseAll() external onlyRole(PAUSER_ROLE) {
         _setIsStrategyDeposit(true);
         _setIsStrategyWithdraw(true);
         _setIsDelegate(true);
