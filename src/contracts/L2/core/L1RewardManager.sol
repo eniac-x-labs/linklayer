@@ -33,15 +33,19 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
     }
 
     function claimL1Reward(IStrategy[] calldata _strategies) external payable returns (bool) {
+        uint256 amountToSend = stakerRewardsAmount(_strategies);
+        payable(msg.sender).transfer(amountToSend);
+        emit ClaimL1Reward(msg.sender, amountToSend);
+        return true;
+    }
+
+    function stakerRewardsAmount(IStrategy[] calldata _strategies) public returns (uint256) {
         uint256 totalShares = 0;
         uint256 userShares = 0;
         for (uint256 i = 0; i < _strategies.length; i++) {
             totalShares += _strategies[i].totalShares();
             userShares += _strategies[i].shares(msg.sender);
         }
-        uint256 amountToSend = L1RewardBalance * (userShares / totalShares);
-        payable(msg.sender).transfer(amountToSend);
-        emit ClaimL1Reward(msg.sender, amountToSend);
-        return true;
+        return L1RewardBalance * (userShares / totalShares);
     }
 }

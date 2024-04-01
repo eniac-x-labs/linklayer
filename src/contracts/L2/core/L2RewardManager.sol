@@ -77,16 +77,19 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
     }
 
     function stakerClaimReward(IStrategy strategy) external returns (bool){
-        uint256 stakerShare = strategyManager.stakerStrategyShares(msg.sender, strategy);
-        uint256 strategyShares = strategy.totalShares();
-        uint256 stakerAmount = stakerRewards[strategy] * (stakerShare /  strategyShares);
-
+       uint256 stakerAmount = stakerRewardsAmount(strategy);
         rewardToken.safeTransferFrom(address(this), msg.sender, stakerAmount);
         emit StakerClaimReward(
             msg.sender,
             stakerAmount
         );
         return true;
+    }
+
+    function stakerRewardsAmount(IStrategy strategy) public returns (uint256){
+        uint256 stakerShare = strategyManager.stakerStrategyShares(msg.sender, strategy);
+        uint256 strategyShares = strategy.totalShares();
+        return stakerRewards[strategy] * (stakerShare /  strategyShares);
     }
 
     function updateOperatorAndStakerShareFee(uint256 _stakerPercent) external {
