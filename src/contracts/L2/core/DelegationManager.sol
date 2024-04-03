@@ -336,8 +336,9 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
                 approverSignatureAndExpiry.expiry
             );
 
+             
             EIP1271SignatureUtils.checkSignature_EIP1271(
-                _delegationApprover,
+                staker,
                 approverDigestHash,
                 approverSignatureAndExpiry.signature
             );
@@ -618,7 +619,7 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
         uint256 expiry
     ) public view returns (bytes32) {
         bytes32 approverStructHash = keccak256(
-            abi.encode(DELEGATION_APPROVAL_TYPEHASH, _delegationApprover, staker, operator, approverSalt, expiry)
+            abi.encode(DELEGATION_APPROVAL_TYPEHASH, staker, operator, _delegationApprover,approverSalt, expiry)
         );
 
         bytes32 approverDigestHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator(), approverStructHash));
