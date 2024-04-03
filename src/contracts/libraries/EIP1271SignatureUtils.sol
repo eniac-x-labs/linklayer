@@ -17,7 +17,9 @@ library EIP1271SignatureUtils {
             );
         } else {
             require(
-                ECDSA.recover(digestHash, signature) == signer,
+                ECDSA.recover(keccak256(
+                    abi.encodePacked("\x19Ethereum Signed Message:\n32", digestHash)
+                ), signature) == signer,
                 "EIP1271SignatureUtils.checkSignature_EIP1271: signature not from signer"
             );
         }
