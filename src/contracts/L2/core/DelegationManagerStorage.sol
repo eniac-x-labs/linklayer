@@ -14,7 +14,7 @@ abstract contract DelegationManagerStorage is IDelegationManager {
         keccak256("StakerDelegation(address staker,address operator,uint256 nonce,uint256 expiry)");
 
     bytes32 public constant DELEGATION_APPROVAL_TYPEHASH =
-        keccak256("DelegationApproval(address delegationApprover,address staker,address operator,bytes32 salt,uint256 expiry)");
+        keccak256("DelegationApproval(address staker,address operator,address delegationApprover,bytes32 salt,uint256 expiry)");
 
     bytes32 internal _DOMAIN_SEPARATOR;
 
