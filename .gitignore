@@ -20,5 +20,6 @@ broadcast
 
 # Deployment tools
 .idea
-/lib
-lib
+# /lib
+# lib
+out
