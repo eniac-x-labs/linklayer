@@ -30,8 +30,6 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
     uint256 public allocatedETHForDeposits;
 
-    uint256 public minimumStakeBound;
-
     uint256 public minimumUnstakeBound;
 
     uint16 public exchangeAdjustmentRate;
@@ -93,8 +91,9 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         _grantRole(ALLOCATOR_SERVICE_ROLE, init.allocatorService);
         _grantRole(INITIATOR_SERVICE_ROLE, init.initiatorService);
 
-        _setRoleAdmin(STAKING_ALLOWLIST_MANAGER_ROLE, STAKING_MANAGER_ROLE);
-        _setRoleAdmin(STAKING_ALLOWLIST_ROLE, STAKING_ALLOWLIST_MANAGER_ROLE);
+        // _setRoleAdmin(STAKING_ALLOWLIST_MANAGER_ROLE, STAKING_MANAGER_ROLE);
+        // _setRoleAdmin(STAKING_ALLOWLIST_ROLE, STAKING_ALLOWLIST_MANAGER_ROLE);
+        // _grantRole(STAKING_ALLOWLIST_ROLE, init.manager);
 
         dETH = init.dETH;
         depositContract = init.depositContract;
@@ -105,10 +104,8 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         dapplinkBridge = init.dapplinkBridge;
         withdrawalWallet = init.withdrawalWallet;
 
-        minimumStakeBound = 0.1 ether;
         minimumUnstakeBound = 0.01 ether;
         minimumDepositAmount = 32 ether;
-        maximumDepositAmount = 32 ether;
         isStakingAllowlist = true;
         initializationBlockNumber = block.number;
 
@@ -120,11 +117,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
             revert Paused();
         }
 
-        if (isStakingAllowlist) {
-            _checkRole(STAKING_ALLOWLIST_ROLE);
-        }
-
-        if (stakeAmount < minimumDepositAmount) {
+        if (msg.value < minimumDepositAmount || stakeAmount < minimumDepositAmount) {
             revert MinimumDepositAmountNotSatisfied();
         }
 
@@ -142,7 +135,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
     }
 
     function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) internal {
-       if (pauser.isUnstakeRequestsAndClaimsPaused()) {
+        if (pauser.isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
 
@@ -160,7 +153,6 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId});
 
         SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
-
     }
     
     function claimUnstakeRequest(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
@@ -228,13 +220,10 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
                 revert PreviouslyUsedValidator();
             }
 
-            if (validator.depositAmount < minimumDepositAmount) {
+            if (validator.depositAmount != minimumDepositAmount) {
                 revert MinimumValidatorDepositNotSatisfied();
             }
 
-            if (validator.depositAmount > maximumDepositAmount) {
-                revert MaximumValidatorDepositExceeded();
-            }
 
             _requireProtocolWithdrawalAccount(validator.withdrawalCredentials);
 
@@ -355,13 +344,6 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         _;
     }
 
-    function setMinimumStakeBound(uint256 minimumStakeBound_) external onlyRole(STAKING_MANAGER_ROLE) {
-        minimumStakeBound = minimumStakeBound_;
-        emit ProtocolConfigChanged(
-            this.setMinimumStakeBound.selector, "setMinimumStakeBound(uint256)", abi.encode(minimumStakeBound_)
-        );
-    }
-
     function setMinimumUnstakeBound(uint256 minimumUnstakeBound_) external onlyRole(STAKING_MANAGER_ROLE) {
         minimumUnstakeBound = minimumUnstakeBound_;
         emit ProtocolConfigChanged(
@@ -391,12 +373,6 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         );
     }
     
-    function setMaximumDepositAmount(uint256 maximumDepositAmount_) external onlyRole(STAKING_MANAGER_ROLE) {
-        maximumDepositAmount = maximumDepositAmount_;
-        emit ProtocolConfigChanged(
-            this.setMaximumDepositAmount.selector, "setMaximumDepositAmount(uint256)", abi.encode(maximumDepositAmount_)
-        );
-    }
     
     function setMaximumDETHSupply(uint256 maximumDETHSupply_) external onlyRole(STAKING_MANAGER_ROLE) {
         maximumDETHSupply = maximumDETHSupply_;

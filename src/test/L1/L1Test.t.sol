@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -9,20 +9,17 @@ import "@/contracts/L1/core/OracleManager.sol";
 import "@/contracts/L1/core/OracleQuorumManager.sol";
 import "@/contracts/L1/core/ReturnsAggregator.sol";
 import "@/contracts/L1/core/ReturnsReceiver.sol";
-import "@/contracts/L1/core/StakingManager.sol";
+import  "@/contracts/L1/core/StakingManager.sol";
 import "@/contracts/L1/core/UnstakeRequestsManager.sol";
 
 import "@/contracts/access/L1Pauser.sol";
 
-import "../src/contracts/access/proxy/Proxy.sol";
+import "@/contracts/access/proxy/Proxy.sol";
 
 import "@/contracts/L1/interfaces/IDepositContract.sol";
 
-
-import "forge-std/Script.sol";
-
-// forge script script/L1Deployer.s.sol:L1Deployer --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --broadcast -vvvv --legacy --gas-price 1000000000
-contract L1Deployer is Script {
+import "forge-std/Test.sol";
+contract L1Test is Test {
     ProxyAdmin             public dappLinkProxyAdmin;
     DETH                   public dETH;
     OracleManager          public oracleManager;
@@ -33,11 +30,24 @@ contract L1Deployer is Script {
     UnstakeRequestsManager public unstakeRequestsManager;
     L1Pauser               public dappLinkPauser;
 
-    function run() external {
-        vm.startBroadcast();
-        address admin = msg.sender;
+
+    Proxy proxyDappLinkPauser;
+    Proxy proxyDETH;
+    Proxy proxyOracleManager;
+    Proxy proxyOracleQuorumManager;
+    Proxy proxyReturnsAggregator;
+    Proxy proxyConsensusLayerReceiver;
+    Proxy proxyExecutionLayerReceiver;
+    Proxy proxyStakingManager;
+    Proxy proxyUnstakeRequestsManager;
+
+    function setUp() external {
+        address admin = 0x8061C28b479B846872132F593bC7cbC6b6C9D628;
+        vm.deal(admin, 1000 ether);
+        vm.startPrank(admin);
+        // vm.startBroadcast();
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
-        dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
+        dappLinkProxyAdmin = new ProxyAdmin(admin);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();
         oracleManager = new OracleManager();
@@ -47,23 +57,23 @@ contract L1Deployer is Script {
         stakingManager = new StakingManager();
         unstakeRequestsManager = new UnstakeRequestsManager();
 
-        Proxy proxyDappLinkPauser = new Proxy(address(dappLinkPauser), address(admin), "");
-        Proxy proxyDETH = new Proxy(address(dETH), address(admin), "");
-        Proxy proxyOracleManager = new Proxy(address(oracleManager), address(admin), "");
-        Proxy proxyOracleQuorumManager = new Proxy(address(oracleQuorumManager), address(admin), "");
-        Proxy proxyReturnsAggregator = new Proxy(address(returnsAggregator), address(admin), "");
-        Proxy proxyConsensusLayerReceiver = new Proxy(address(returnsReceiver), address(admin), "");
-        Proxy proxyExecutionLayerReceiver = new Proxy(address(returnsReceiver), address(admin), "");
-        Proxy proxyStakingManager = new Proxy(address(stakingManager), address(admin), "");
-        Proxy proxyUnstakeRequestsManager = new Proxy(address(unstakeRequestsManager), address(admin), "");
+        proxyDappLinkPauser = new Proxy(address(dappLinkPauser), address(admin), "");
+        proxyDETH = new Proxy(address(dETH), address(admin), "");
+        proxyOracleManager = new Proxy(address(oracleManager), address(admin), "");
+        proxyOracleQuorumManager = new Proxy(address(oracleQuorumManager), address(admin), "");
+        proxyReturnsAggregator = new Proxy(address(returnsAggregator), address(admin), "");
+        proxyConsensusLayerReceiver = new Proxy(address(returnsReceiver), address(admin), "");
+        proxyExecutionLayerReceiver = new Proxy(address(returnsReceiver), address(admin), "");
+        proxyStakingManager = new Proxy(address(stakingManager), address(admin), "");
+        proxyUnstakeRequestsManager = new Proxy(address(unstakeRequestsManager), address(admin), "");
 
 
         //====================== initialize ======================
         {
             L1Pauser.Init memory initInfo = L1Pauser.Init({
-                admin: msg.sender,
-                pauser: msg.sender,
-                unpauser: msg.sender,
+                admin: admin,
+                pauser: admin,
+                unpauser: admin,
                 oracle: IOracleManager(address(proxyOracleManager))
              });
             L1Pauser(address(proxyDappLinkPauser)).initialize(initInfo);
@@ -72,8 +82,8 @@ contract L1Deployer is Script {
 
         {
             DETH.Init memory initDeth = DETH.Init({
-                admin: msg.sender,
-                l2ShareAddress: msg.sender,
+                admin: admin,
+                l2ShareAddress: admin,
                 staking: IStakingManager(address(proxyStakingManager)),
                 unstakeRequestsManager: IUnstakeRequestsManager(address(proxyUnstakeRequestsManager))
             });
@@ -82,11 +92,11 @@ contract L1Deployer is Script {
 
         {
             address[] memory allowedReporters = new address[](1);
-            allowedReporters[0] = msg.sender;
+            allowedReporters[0] = admin;
             OracleQuorumManager.Init memory initOracleQuorumManager = OracleQuorumManager.Init({
-                admin: msg.sender,
-                reporterModifier: msg.sender,
-                manager: msg.sender,
+                admin: admin,
+                reporterModifier: admin,
+                manager: admin,
                 allowedReporters: allowedReporters,
                 oracle: IOracleManager(address(proxyOracleManager))
             });
@@ -95,9 +105,9 @@ contract L1Deployer is Script {
 
          {
             ReturnsReceiver.Init memory initReturnsReceiver = ReturnsReceiver.Init({
-                admin: msg.sender,
-                manager: msg.sender,
-                withdrawer: msg.sender
+                admin: admin,
+                manager: admin,
+                withdrawer: admin
             });
             ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))).initialize(initReturnsReceiver);
             ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))).initialize(initReturnsReceiver);
@@ -105,27 +115,27 @@ contract L1Deployer is Script {
 
         {
             ReturnsAggregator.Init memory initReturnsAggregator = ReturnsAggregator.Init({
-                admin: msg.sender,
-                manager: msg.sender,
+                admin: admin,
+                manager: admin,
                 oracle: IOracleManager(address(proxyOracleManager)),
                 pauser: dappLinkPauser,
                 consensusLayerReceiver: ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))),
                 executionLayerReceiver: ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))),
                 staking: IStakingManager(address(proxyStakingManager)),
-                feesReceiver: payable(msg.sender)
+                feesReceiver: payable(admin)
             });
             ReturnsAggregator(payable(address(proxyReturnsAggregator))).initialize(initReturnsAggregator);
         }
 
         {
             StakingManager.Init memory initStakingManager = StakingManager.Init({
-                admin: msg.sender,
-                manager: msg.sender,
-                allocatorService: msg.sender,
-                initiatorService: msg.sender,
-                returnsAggregator: msg.sender,
+                admin: admin,
+                manager: admin,
+                allocatorService: admin,
+                initiatorService: admin,
+                returnsAggregator: admin,
                 withdrawalWallet: address(proxyConsensusLayerReceiver),
-                dapplinkBridge: msg.sender,
+                dapplinkBridge: admin,
                 dETH: IDETH(address(proxyDETH)),
                 depositContract: IDepositContract(depositAddress),
                 oracle: IOracleManager(address(proxyOracleManager)),
@@ -138,9 +148,9 @@ contract L1Deployer is Script {
 
          {
             UnstakeRequestsManager.Init memory initUnstakeRequestsManager = UnstakeRequestsManager.Init({
-                admin: msg.sender,
-                manager: msg.sender,
-                requestCanceller: msg.sender,
+                admin: admin,
+                manager: admin,
+                requestCanceller: admin,
                 dETH: IDETH(address(proxyDETH)),
                 stakingContract: IStakingManager(address(proxyStakingManager)),
                 oracle: IOracleManager(address(proxyOracleManager)),
@@ -152,10 +162,10 @@ contract L1Deployer is Script {
 
         {
             OracleManager.Init memory initOracle = OracleManager.Init({
-                admin: msg.sender,
-                manager: msg.sender,
-                oracleUpdater: msg.sender,
-                pendingResolver: msg.sender,
+                admin: admin,
+                manager: admin,
+                oracleUpdater: admin,
+                pendingResolver: admin,
                 aggregator: IReturnsAggregator(address(proxyReturnsAggregator)),
                 pauser: IL1Pauser(address(proxyDappLinkPauser)),
                 staking: IStakingManager(address(proxyStakingManager))
@@ -166,16 +176,27 @@ contract L1Deployer is Script {
 
         
 
-        vm.writeFile("data/L1/proxyDappLinkPauser.addr", vm.toString(address(proxyDappLinkPauser)));
-        vm.writeFile("data/L1/proxyDETH.addr", vm.toString(address(proxyDETH)));
-        vm.writeFile("data/L1/proxyOracleManager.addr", vm.toString(address(proxyOracleManager)));
-        vm.writeFile("data/L1/proxyOracleQuorumManager.addr", vm.toString(address(proxyOracleQuorumManager)));
-        vm.writeFile("data/L1/proxyReturnsAggregator.addr", vm.toString(address(proxyReturnsAggregator)));
-        vm.writeFile("data/L1/proxyConsensusLayerReceiver.addr", vm.toString(address(proxyConsensusLayerReceiver)));
-        vm.writeFile("data/L1/proxyExecutionLayerReceiver.addr", vm.toString(address(proxyExecutionLayerReceiver)));
-        vm.writeFile("data/L1/proxyStakingManager.addr", vm.toString(address(proxyStakingManager)));
-        vm.writeFile("data/L1/proxyUnstakeRequestsManager.addr", vm.toString(address(proxyUnstakeRequestsManager)));
+        // vm.writeFile("data/L1/proxyDappLinkPauser.addr", vm.toString(address(proxyDappLinkPauser)));
+        // vm.writeFile("data/L1/proxyDETH.addr", vm.toString(address(proxyDETH)));
+        // vm.writeFile("data/L1/proxyOracleManager.addr", vm.toString(address(proxyOracleManager)));
+        // vm.writeFile("data/L1/proxyOracleQuorumManager.addr", vm.toString(address(proxyOracleQuorumManager)));
+        // vm.writeFile("data/L1/proxyReturnsAggregator.addr", vm.toString(address(proxyReturnsAggregator)));
+        // vm.writeFile("data/L1/proxyConsensusLayerReceiver.addr", vm.toString(address(proxyConsensusLayerReceiver)));
+        // vm.writeFile("data/L1/proxyExecutionLayerReceiver.addr", vm.toString(address(proxyExecutionLayerReceiver)));
+        // vm.writeFile("data/L1/proxyStakingManager.addr", vm.toString(address(proxyStakingManager)));
+        // vm.writeFile("data/L1/proxyUnstakeRequestsManager.addr", vm.toString(address(proxyUnstakeRequestsManager)));
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
     }
+
+    
+    // function testBatchMintDEth()public{
+    //     address admin = 0x8061C28b479B846872132F593bC7cbC6b6C9D628
+    //     vm.startPrank(admin);
+    //     IDETH.BatchMint memory dm = IDETH.BatchMint({staker:admin,amount:32000000000000000000});
+    //     IDETH.BatchMint[] memory mints = new IDETH.BatchMint[](1);
+    //     mints[0] = dm;
+
+    //     dETH.batchMint(mints);
+    // }
 }
