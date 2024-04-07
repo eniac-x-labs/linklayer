@@ -89,6 +89,9 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
     function stakerRewardsAmount(IStrategy strategy) public returns (uint256){
         uint256 stakerShare = strategyManager.stakerStrategyShares(msg.sender, strategy);
         uint256 strategyShares = strategy.totalShares();
+        if (stakerShare == 0 ||strategyShares == 0) {
+            return 0;
+        }
         return stakerRewards[strategy] * (stakerShare /  strategyShares);
     }
 

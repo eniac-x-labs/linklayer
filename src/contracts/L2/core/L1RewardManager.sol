@@ -14,7 +14,7 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
     IStrategyManager public strategyManager;
 
     constructor(){
-       _disableInitializers();
+        _disableInitializers();
     }
 
     function initialize(
@@ -22,7 +22,7 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
         IStrategyManager _strategyManager
     ) external initializer {
         _transferOwnership(initialOwner);
-         strategyManager = _strategyManager;
+        strategyManager = _strategyManager;
     }
 
     function depositETHRewardTo() external payable returns (bool) {
@@ -45,6 +45,9 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
         for (uint256 i = 0; i < _strategies.length; i++) {
             totalShares += _strategies[i].totalShares();
             userShares += _strategies[i].shares(msg.sender);
+        }
+        if (totalShares == 0 || userShares == 0) {
+            return 0;
         }
         return L1RewardBalance * (userShares / totalShares);
     }
