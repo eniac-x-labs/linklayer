@@ -184,8 +184,8 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, uint256 gasLimit) external payable onlyRelayer returns (bool) {
-        if (stakingWeth.balanceOf(address(this)) >= 32e18 ) {
-            uint256 amountBridge = (stakingWeth.balanceOf(address(this)) / 32e18) * 32e18;
+        if (address(this).balance > 32e18) {
+            uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
             bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
@@ -198,12 +198,12 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, address wethAddress, uint256 gasLimit) external payable onlyRelayer returns (bool) {
-         if (address(this).balance > 32e18) {
-             uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
-             bool success = SafeCall.callWithMinGas(
+        if (stakingWeth.balanceOf(address(this)) >= 32e18 ) {
+            uint256 amountBridge = (stakingWeth.balanceOf(address(this)) / 32e18) * 32e18;
+            bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
-                msg.value,
+                amountBridge,
                 abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
             return success;
