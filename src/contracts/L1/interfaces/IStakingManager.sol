@@ -29,8 +29,8 @@ interface IStakingManager is IStakingManagerInitiationRead, IStakingManagerRetur
     error NotUnstakeRequestsManager();
     error NotDappLinkBridge();
     error Paused();
+    // error ZeroAddress();
     error PreviouslyUsedValidator();
-    error ZeroAddress();
     error InvalidDepositRoot(bytes32);
     error UnstakeBelowMinimudETHAmount(uint256 ethAmount, uint256 expectedMinimum);
 

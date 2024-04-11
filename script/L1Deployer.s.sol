@@ -13,7 +13,7 @@ import "@/contracts/L1/core/StakingManager.sol";
 import "@/contracts/L1/core/UnstakeRequestsManager.sol";
 
 import "@/contracts/access/L1Pauser.sol";
-
+import "@/contracts/L1/core/L1Locator.sol";
 import "../src/contracts/access/proxy/Proxy.sol";
 
 import "@/contracts/L1/interfaces/IDepositContract.sol";
@@ -32,11 +32,14 @@ contract L1Deployer is Script {
     StakingManager         public stakingManager;
     UnstakeRequestsManager public unstakeRequestsManager;
     L1Pauser               public dappLinkPauser;
+    L1Locator              public l1Locator;
+
 
     function run() external {
         vm.startBroadcast();
         address admin = msg.sender;
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
+        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testnet
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();
@@ -46,6 +49,8 @@ contract L1Deployer is Script {
         returnsReceiver = new ReturnsReceiver();
         stakingManager = new StakingManager();
         unstakeRequestsManager = new UnstakeRequestsManager();
+
+
 
         Proxy proxyDappLinkPauser = new Proxy(address(dappLinkPauser), address(admin), "");
         Proxy proxyDETH = new Proxy(address(dETH), address(admin), "");
@@ -58,6 +63,20 @@ contract L1Deployer is Script {
         Proxy proxyUnstakeRequestsManager = new Proxy(address(unstakeRequestsManager), address(admin), "");
 
 
+        L1Locator.Config memory _config = L1Locator.Config({
+            stakingManager: address(proxyStakingManager),
+            unStakingRequestsManager: address(proxyUnstakeRequestsManager),
+            dETH: address(proxyDETH),
+            pauser: address(proxyDappLinkPauser),
+            returnsAggregator: address(proxyReturnsAggregator),
+            oracleManager: address(proxyOracleManager),
+            oracleQuorumManager: address(proxyOracleQuorumManager),
+            consensusLayerReceiver: address(proxyConsensusLayerReceiver),
+            executionLayerReceiver: address(proxyExecutionLayerReceiver),
+            dapplinkBridge: dapplinkBridge,
+            depositContract: depositAddress
+        });
+        l1Locator = new L1Locator(_config);
         //====================== initialize ======================
         {
             L1Pauser.Init memory initInfo = L1Pauser.Init({
@@ -73,11 +92,10 @@ contract L1Deployer is Script {
         {
             DETH.Init memory initDeth = DETH.Init({
                 admin: msg.sender,
-                l2ShareAddress: msg.sender,
-                staking: IStakingManager(address(proxyStakingManager)),
-                unstakeRequestsManager: IUnstakeRequestsManager(address(proxyUnstakeRequestsManager))
+                l2ShareAddress: msg.sender
             });
             DETH(address(proxyDETH)).initialize(initDeth);
+            DETH(address(proxyDETH)).setLocator(address(l1Locator));
         }
 
         {
@@ -87,10 +105,10 @@ contract L1Deployer is Script {
                 admin: msg.sender,
                 reporterModifier: msg.sender,
                 manager: msg.sender,
-                allowedReporters: allowedReporters,
-                oracle: IOracleManager(address(proxyOracleManager))
+                allowedReporters: allowedReporters
             });
             OracleQuorumManager(address(proxyOracleQuorumManager)).initialize(initOracleQuorumManager);
+            OracleQuorumManager(address(proxyOracleQuorumManager)).setLocator(address(l1Locator));
         }
 
          {
@@ -100,21 +118,22 @@ contract L1Deployer is Script {
                 withdrawer: msg.sender
             });
             ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))).initialize(initReturnsReceiver);
+            
             ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))).initialize(initReturnsReceiver);
+
+            ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))).setLocator(address(l1Locator));
+
+            ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))).setLocator(address(l1Locator));
          }
 
         {
             ReturnsAggregator.Init memory initReturnsAggregator = ReturnsAggregator.Init({
                 admin: msg.sender,
                 manager: msg.sender,
-                oracle: IOracleManager(address(proxyOracleManager)),
-                pauser: dappLinkPauser,
-                consensusLayerReceiver: ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))),
-                executionLayerReceiver: ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))),
-                staking: IStakingManager(address(proxyStakingManager)),
                 feesReceiver: payable(msg.sender)
             });
             ReturnsAggregator(payable(address(proxyReturnsAggregator))).initialize(initReturnsAggregator);
+            ReturnsAggregator(payable(address(proxyReturnsAggregator))).setLocator(address(l1Locator));
         }
 
         {
@@ -123,16 +142,10 @@ contract L1Deployer is Script {
                 manager: msg.sender,
                 allocatorService: msg.sender,
                 initiatorService: msg.sender,
-                returnsAggregator: msg.sender,
-                withdrawalWallet: address(proxyConsensusLayerReceiver),
-                dapplinkBridge: msg.sender,
-                dETH: IDETH(address(proxyDETH)),
-                depositContract: IDepositContract(depositAddress),
-                oracle: IOracleManager(address(proxyOracleManager)),
-                pauser: IL1Pauser(address(proxyDappLinkPauser)),
-                unstakeRequestsManager: unstakeRequestsManager
+                withdrawalWallet: address(proxyConsensusLayerReceiver)
             });
             StakingManager(payable(address(proxyStakingManager))).initialize(initStakingManager);
+            StakingManager(payable(address(proxyStakingManager))).setLocator(address(l1Locator));
             // StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
          }
 
@@ -141,12 +154,10 @@ contract L1Deployer is Script {
                 admin: msg.sender,
                 manager: msg.sender,
                 requestCanceller: msg.sender,
-                dETH: IDETH(address(proxyDETH)),
-                stakingContract: IStakingManager(address(proxyStakingManager)),
-                oracle: IOracleManager(address(proxyOracleManager)),
                 numberOfBlocksToFinalize: 64
             });
             UnstakeRequestsManager(payable(address(proxyUnstakeRequestsManager))).initialize(initUnstakeRequestsManager);
+            UnstakeRequestsManager(payable(address(proxyUnstakeRequestsManager))).setLocator(address(l1Locator));
         }
 
 
@@ -155,12 +166,10 @@ contract L1Deployer is Script {
                 admin: msg.sender,
                 manager: msg.sender,
                 oracleUpdater: msg.sender,
-                pendingResolver: msg.sender,
-                aggregator: IReturnsAggregator(address(proxyReturnsAggregator)),
-                pauser: IL1Pauser(address(proxyDappLinkPauser)),
-                staking: IStakingManager(address(proxyStakingManager))
+                pendingResolver: msg.sender
             });
             OracleManager(address(proxyOracleManager)).initialize(initOracle);
+            OracleManager(address(proxyOracleManager)).setLocator(address(l1Locator));
         }
 
 

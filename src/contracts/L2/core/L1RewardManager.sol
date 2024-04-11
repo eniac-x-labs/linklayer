@@ -1,28 +1,43 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
+import "@/contracts/L2/core/L2Base.sol";
 import "../interfaces/IStrategyManager.sol";
 import "../interfaces/IL1RewardManager.sol";
 
-contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract L1RewardManager is IL1RewardManager, L2Base{
     uint256 public L1RewardBalance;
 
+    struct AllocateObj {
+        StrategyObj[] strategies;
+    }
+    struct StrategyObj {
+        address strategy;
+        OperatorObj[] operators;
+    }
+    struct OperatorObj {
+        address strategy;
+        StakerObj[] stakers;
+    }
+    struct StakerObj {
+        address staker;
+        uint256 share;
+    }
+    mapping(address => mapping(IStrategy => mapping (address => uint256) )) public stakerStrategyOperatorReward;
+
     IStrategyManager public strategyManager;
+
+    IDelegationManager public delegation;
 
     constructor(){
         _disableInitializers();
     }
 
     function initialize(
-        address initialOwner,
-        IStrategyManager _strategyManager
+        address initialOwner
     ) external initializer {
-        _transferOwnership(initialOwner);
-        strategyManager = _strategyManager;
+        __L2Base_init(initialOwner);
     }
 
     function depositETHRewardTo() external payable returns (bool) {
@@ -39,6 +54,24 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
         return true;
     }
 
+    // function allocateL1Reward(AllocateObj calldata _allocateObj)external onlyRelayer{
+    //     uint256 totalShares = 0;
+    //     for (uint256 i = 0; i < _allocateObj.strategies.length; i++) {
+    //         IStrategy _strategy = _getStrategy(_allocateObj.strategies[i].strategy);
+
+    //         totalShares += _strategies[i].totalShares();
+    //         // userShares += _strategies[i].shares(msg.sender);
+    //     }
+
+    //     for (uint256 i = 0; i < _allocateObj.strategies.length; i++) {
+    //         IStrategy _strategy = _getStrategy(_allocateObj.strategies[i]);
+
+    //         totalShares += _strategies[i].totalShares();
+    //         // userShares += _strategies[i].shares(msg.sender);
+    //     }
+    // }
+
+
     function stakerRewardsAmount(IStrategy[] calldata _strategies) public returns (uint256) {
         uint256 totalShares = 0;
         uint256 userShares = 0;
@@ -51,4 +84,10 @@ contract L1RewardManager is IL1RewardManager, Initializable, OwnableUpgradeable,
         }
         return L1RewardBalance * (userShares / totalShares);
     }
+
+
+    function _getStrategy(address _strategy)internal returns (IStrategy){
+        return IStrategy(_strategy);
+    }
+
 }

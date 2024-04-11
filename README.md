@@ -1,8 +1,8 @@
-# dapplink-contracts
+# linklayer
 
 ## Introduction
 
-This dapplink layer3 multi-staking protocol;
+This linklayer multi-staking protocol;
 
 
 ## How is work

@@ -41,7 +41,6 @@ interface IOracleManager is IOracleWrite, IOracleReadRecord, IOracleReadPending 
     error RecordDoesNotExist(uint256 idx);
     error UnauthorizedOracleUpdater(address sender, address oracleUpdater);
     error UpdateEndBlockNumberNotFinal(uint256 updateFinalizingBlock);
-    error ZeroAddress();
 
     event OracleRecordAdded(uint256 indexed index, OracleRecord record);
     event OracleRecordModified(uint256 indexed index, OracleRecord record);

@@ -426,11 +426,13 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
 
     function _increaseOperatorShares(address operator, address staker, IStrategy strategy, uint256 shares) internal {
         operatorShares[operator][strategy] += shares;
+        stakerStrategyOperatorShares[operator][strategy][operator] += shares;
         emit OperatorSharesIncreased(operator, staker, strategy, shares);
     }
 
     function _decreaseOperatorShares(address operator, address staker, IStrategy strategy, uint256 shares) internal {
         operatorShares[operator][strategy] -= shares;
+        stakerStrategyOperatorShares[operator][strategy][operator] -= shares;
         emit OperatorSharesDecreased(operator, staker, strategy, shares);
     }
 

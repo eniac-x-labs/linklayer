@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Initializable } from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
+import {L1Base} from "@/contracts/L1/core/L1Base.sol";
 import {
     IOracleManager,
     IOracleReadRecord,
@@ -13,13 +11,12 @@ import {
     IOracleWrite,
     OracleRecord
 } from "../interfaces/IOracleManager.sol";
-import { IStakingManagerInitiationRead } from "../interfaces/IStakingManager.sol";
 import { IReturnsAggregator } from "../interfaces/IReturnsAggregator.sol";
 import { IL1Pauser } from "../../access/interface/IL1Pauser.sol";
 import { OracleManagerStorage } from "./OracleManagerStorage.sol";
 
 
-contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, OracleManagerStorage, ProtocolEvents {
+contract OracleManager is L1Base, OracleManagerStorage {
     bool public hasPendingUpdate;
 
     OracleRecord internal _pendingUpdate;
@@ -27,12 +24,6 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
     uint256 public finalizationBlockNumberDelta;
 
     address public oracleUpdater;
-
-    IL1Pauser public pauser;
-
-    IStakingManagerInitiationRead public staking;
-
-    IReturnsAggregator public aggregator;
 
     uint256 public minDepositPerValidator;
 
@@ -55,9 +46,6 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
         address manager;
         address oracleUpdater;
         address pendingResolver;
-        IReturnsAggregator aggregator;
-        IL1Pauser pauser;
-        IStakingManagerInitiationRead staking;
     }
 
     constructor() {
@@ -65,15 +53,11 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
     }
 
     function initialize(Init memory init) external initializer {
-        __AccessControlEnumerable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
+        __L1Base_init(init.admin);
         _grantRole(ORACLE_MANAGER_ROLE, init.manager);
         _grantRole(ORACLE_PENDING_UPDATE_RESOLVER_ROLE, init.pendingResolver);
 
-        aggregator = init.aggregator;
         oracleUpdater = init.oracleUpdater;
-        pauser = init.pauser;
-        staking = init.staking;
 
         finalizationBlockNumberDelta = 64;
 
@@ -86,11 +70,11 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
 
         maxConsensusLayerLossPPM = 1000;
 
-        _pushRecord(OracleRecord(0, uint64(staking.initializationBlockNumber()), 0, 0, 0, 0, 0, 0), address(init.manager), address(init.manager), 0, 0);
+        _pushRecord(OracleRecord(0, uint64(getStakingManager().initializationBlockNumber()), 0, 0, 0, 0, 0, 0), address(init.manager), address(init.manager), 0, 0);
     }
 
     function receiveRecord(OracleRecord calldata newRecord, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external {
-        if (pauser.isSubmitOracleRecordsPaused()) {
+        if (IL1Pauser(locator.pauser()).isSubmitOracleRecordsPaused()) {
             revert Paused();
         }
 
@@ -121,7 +105,7 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
                 bound: bound
             });
 
-            pauser.pauseAll();
+            IL1Pauser(locator.pauser()).pauseAll();
             return;
         }
         _pushRecord(newRecord, bridge, l2Strategy, sourceChainId, destChainId);
@@ -160,7 +144,7 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
         emit OracleRecordModified(idx, record);
 
         if (missingRewards > 0 || missingPrincipals > 0) {
-            aggregator.processReturns({
+            IReturnsAggregator(locator.returnsAggregator()).processReturns({
                 rewardAmount: missingRewards,
                 principalAmount: missingPrincipals,
                 shouldIncludeELRewards: false,
@@ -182,19 +166,19 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
             revert InvalidUpdateStartBlock(prevRecord.updateEndBlock + 1, newRecord.updateStartBlock);
         }
 
-        if (newRecord.cumulativeProcessedDepositAmount > staking.totalDepositedInValidators()) {
+        if (newRecord.cumulativeProcessedDepositAmount > getStakingManager().totalDepositedInValidators()) {
             revert InvalidUpdateMoreDepositsProcessedThanSent(
-                newRecord.cumulativeProcessedDepositAmount, staking.totalDepositedInValidators()
+                newRecord.cumulativeProcessedDepositAmount, getStakingManager().totalDepositedInValidators()
             );
         }
 
         if (
             uint256(newRecord.currentNumValidatorsNotWithdrawable)
-                + uint256(newRecord.cumulativeNumValidatorsWithdrawable) > staking.numInitiatedValidators()
+                + uint256(newRecord.cumulativeNumValidatorsWithdrawable) > getStakingManager().numInitiatedValidators()
         ) {
             revert InvalidUpdateMoreValidatorsThanInitiated(
                 newRecord.currentNumValidatorsNotWithdrawable + newRecord.cumulativeNumValidatorsWithdrawable,
-                staking.numInitiatedValidators()
+                getStakingManager().numInitiatedValidators()
             );
         }
     }
@@ -292,7 +276,7 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
         emit OracleRecordAdded(_records.length, record);
         _records.push(record);
 
-        aggregator.processReturns({
+        IReturnsAggregator(locator.returnsAggregator()).processReturns({
             rewardAmount: record.windowWithdrawnRewardAmount,
             principalAmount: record.windowWithdrawnPrincipalAmount,
             shouldIncludeELRewards: true,
@@ -436,13 +420,6 @@ contract OracleManager is Initializable, AccessControlEnumerableUpgradeable, Ora
     modifier onlyFractionLeqOne(uint256 numerator, uint256 denominator) {
         if (numerator > denominator) {
             revert InvalidConfiguration();
-        }
-        _;
-    }
-
-    modifier notZeroAddress(address addr) {
-        if (addr == address(0)) {
-            revert ZeroAddress();
         }
         _;
     }

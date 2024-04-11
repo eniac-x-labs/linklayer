@@ -6,6 +6,9 @@ contract StakingManagerTest is L1Test{
     address admin = 0x8061C28b479B846872132F593bC7cbC6b6C9D628;
     uint256 amount = 32 ether;
     uint128 amount128 = 32 ether;
+
+
+
     function testBatchMintDEth()public{
         vm.startPrank(admin);
         address _shareAddress = DETH(address(proxyDETH)).l2ShareAddress();
@@ -23,6 +26,12 @@ contract StakingManagerTest is L1Test{
         StakingManager(payable(address(proxyStakingManager))).allocateETH(0,amount);
 
         assert(StakingManager(payable(address(proxyStakingManager))).unallocatedETH() == 0);
+    }
+
+    function testStakingManager()public view{
+        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne
+        address dBridge = StakingManager(payable(address(proxyStakingManager))).locator().dapplinkBridge();
+        assert(dapplinkBridge == dBridge);
     }
 
     function testUnstakeRequest()public{

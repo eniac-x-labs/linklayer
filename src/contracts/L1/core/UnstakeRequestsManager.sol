@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ERC20Upgradeable } from "@openzeppelin-upgrades/contracts/token/ERC20/ERC20Upgradeable.sol";
 
-import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
+import {L1Base} from "@/contracts/L1/core/L1Base.sol";
 import {IDETH} from "../interfaces/IDETH.sol";
 import {IOracleReadRecord} from "../interfaces/IOracleManager.sol";
 import {
@@ -22,26 +17,18 @@ import "../../libraries/SafeCall.sol";
 
 
 contract UnstakeRequestsManager is
-    Initializable,
-    AccessControlEnumerableUpgradeable,
-    IUnstakeRequestsManager,
-    ProtocolEvents
+    L1Base,
+    IUnstakeRequestsManager
 {
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     bytes32 public constant REQUEST_CANCELLER_ROLE = keccak256("REQUEST_CANCELLER_ROLE");
 
-    IStakingManagerReturnsWrite public stakingContract;
-
-    IOracleReadRecord public oracle;
-    
     uint256 public allocatedETHForClaims;
 
     uint256 public totalClaimed;
     
     uint256 public numberOfBlocksToFinalize;
-    
-    IDETH public dETH;
     
     uint256 public latestCumulativeETHRequested;
     
@@ -55,9 +42,6 @@ contract UnstakeRequestsManager is
         address admin;
         address manager;
         address requestCanceller;
-        IDETH dETH;
-        IStakingManagerReturnsWrite stakingContract;
-        IOracleReadRecord oracle;
         uint256 numberOfBlocksToFinalize;
     }
 
@@ -66,16 +50,11 @@ contract UnstakeRequestsManager is
     }
 
     function initialize(Init memory init) external initializer {
-        __AccessControlEnumerable_init();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
-        numberOfBlocksToFinalize = init.numberOfBlocksToFinalize;
-        stakingContract = init.stakingContract;
-        oracle = init.oracle;
-        dETH = init.dETH;
-
+        __L1Base_init(init.admin);
         _grantRole(MANAGER_ROLE, init.manager);
         _grantRole(REQUEST_CANCELLER_ROLE, init.requestCanceller);
+
+        numberOfBlocksToFinalize = init.numberOfBlocksToFinalize;
     }
     
     function create(address requester, address l2Strategy, uint256 dETHLocked, uint256 ethRequested, uint256 destChainId)
@@ -117,7 +96,7 @@ contract UnstakeRequestsManager is
             destChainId: destChainId,
             csBlockNumber: csBlockNumber
         });
-        dETH.burn(dETHLocked);
+        getDETH().burn(dETHLocked);
         bool success = SafeCall.callWithMinGas(
             bridge,
             gasLimit,
@@ -137,7 +116,7 @@ contract UnstakeRequestsManager is
             return;
         }
         allocatedETHForClaims -= toSend;
-        stakingContract.receiveFromUnstakeRequestsManager{value: toSend}();
+        IStakingManagerReturnsWrite(locator.stakingManager()).receiveFromUnstakeRequestsManager{value: toSend}();
     }
 
     function requestByID(uint256 destChainId, address l2Strategy) external view returns (uint256, uint256, uint256){
@@ -194,16 +173,18 @@ contract UnstakeRequestsManager is
     }
     
     function _isFinalized(uint256 blockNumber) internal view returns (bool) {
-        return (blockNumber + numberOfBlocksToFinalize) <= oracle.latestRecord().updateEndBlock;
+        return (blockNumber + numberOfBlocksToFinalize) <= IOracleReadRecord(locator.oracleManager()).latestRecord().updateEndBlock;
     }
 
     modifier onlyStakingContract() {
-        if (msg.sender != address(stakingContract)) {
+        if (msg.sender != locator.stakingManager()) {
             revert NotStakingManagerContract();
         }
         _;
     }
-    
+    function getDETH()internal view returns (IDETH){
+        return IDETH(locator.dETH());
+    }
     receive() external payable {
         revert DoesNotReceiveETH();
     }

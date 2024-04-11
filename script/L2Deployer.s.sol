@@ -97,7 +97,7 @@ contract L2Deployer is Script {
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
 
-        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), IStrategyManager(address(proxyStrategyManager)));
+        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin));
 
         {
             L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), IDelegationManager(address(proxyDelegationManager)), IStrategyManager(address(proxyStrategyManager)), DappLinkToken(address(proxyDappLinkToken)));

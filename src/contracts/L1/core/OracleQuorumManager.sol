@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
-
-import {ProtocolEvents} from "../interfaces/ProtocolEvents.sol";
+import {L1Base} from "@/contracts/L1/core/L1Base.sol";
 import {OracleRecord, IOracleManager} from "../interfaces/IOracleManager.sol";
 import { IOracleQuorumManager } from "../interfaces/IOracleQuorumManager.sol";
 
 
 contract OracleQuorumManager is
-    Initializable,
-    AccessControlEnumerableUpgradeable,
-    ProtocolEvents,
+    L1Base,
     IOracleQuorumManager
 {
     bytes32 public constant QUORUM_MANAGER_ROLE = keccak256("QUORUM_MANAGER_ROLE");
@@ -22,8 +17,6 @@ contract OracleQuorumManager is
     bytes32 public constant SERVICE_ORACLE_REPORTER = keccak256("SERVICE_ORACLE_REPORTER");
 
     uint16 internal constant _BASIS_POINTS_DENOMINATOR = 10000;
-
-    IOracleManager public oracle;
 
     mapping(uint64 block => mapping(address reporter => bytes32 recordHash)) public reporterRecordHashesByBlock;
 
@@ -40,7 +33,6 @@ contract OracleQuorumManager is
         address reporterModifier;
         address manager;
         address[] allowedReporters;
-        IOracleManager oracle;
     }
 
     constructor() {
@@ -48,15 +40,12 @@ contract OracleQuorumManager is
     }
 
     function initialize(Init memory init) external initializer {
-        __AccessControlEnumerable_init();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
+        __L1Base_init(init.admin);
         _grantRole(REPORTER_MODIFIER_ROLE, init.reporterModifier);
         _setRoleAdmin(SERVICE_ORACLE_REPORTER, REPORTER_MODIFIER_ROLE);
 
         _grantRole(QUORUM_MANAGER_ROLE, init.manager);
 
-        oracle = init.oracle;
         uint256 len = init.allowedReporters.length;
         for (uint256 i = 0; i < len; i++) {
             _grantRole(SERVICE_ORACLE_REPORTER, init.allowedReporters[i]);
@@ -77,8 +66,8 @@ contract OracleQuorumManager is
     }
 
     function _wasReceivedByOracle(uint256 updateEndBlock) internal view returns (bool) {
-        return oracle.latestRecord().updateEndBlock >= updateEndBlock
-            || (oracle.hasPendingUpdate() && oracle.pendingUpdate().updateEndBlock >= updateEndBlock);
+        return getOracle().latestRecord().updateEndBlock >= updateEndBlock
+            || (getOracle().hasPendingUpdate() && getOracle().pendingUpdate().updateEndBlock >= updateEndBlock);
     }
 
     function recordHashByBlockAndSender(uint64 blockNumber, address sender) external view returns (bytes32) {
@@ -117,7 +106,7 @@ contract OracleQuorumManager is
 
         emit ReportQuorumReached(record.updateEndBlock);
 
-        try oracle.receiveRecord(record, bridge, l2Strategy, sourceChainId, destChainId) {}
+        try getOracle().receiveRecord(record, bridge, l2Strategy, sourceChainId, destChainId) {}
         catch (bytes memory reason) {
             emit OracleRecordReceivedError(reason);
         }
@@ -147,5 +136,9 @@ contract OracleQuorumManager is
         );
         absoluteThreshold = absoluteThreshold_;
         relativeThresholdBasisPoints = relativeThresholdBasisPoints_;
+    }
+
+    function getOracle()internal view returns (IOracleManager) {
+        return IOracleManager(locator.oracleManager());
     }
 }

@@ -1,25 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import { Initializable } from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import { AccessControlEnumerableUpgradeable } from "@openzeppelin-upgrades/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import { ERC20Upgradeable } from "@openzeppelin-upgrades/contracts/token/ERC20/ERC20Upgradeable.sol";
+pragma solidity ^0.8.24;
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
+
 import { IDepositContract } from "../interfaces/IDepositContract.sol";
 import { IDETH } from "../interfaces/IDETH.sol";
 import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
-import {IL1Pauser} from "../../access/interface/IL1Pauser.sol";
 import { StakingManagerStorage } from "./StakingManagerStorage.sol";
-import { IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
+import {L1Base} from "@/contracts/L1/core/L1Base.sol";
 
 
-contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, StakingManagerStorage, ProtocolEvents {
+
+contract StakingManager is L1Base, StakingManagerStorage{
     mapping(bytes pubkey => bool exists) public usedValidators;
 
     uint256 public totalDepositedInValidators;
@@ -42,19 +36,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
     uint256 public maximumDepositAmount;
 
-    IDepositContract public depositContract;
-
-    IDETH public dETH;
-
-    IOracleReadRecord public oracle;
-
-    IL1Pauser public pauser;
-
-    IUnstakeRequestsManager public unstakeRequestsManager;
-
     address public withdrawalWallet;
-
-    address public returnsAggregator;
 
     bool public isStakingAllowlist;
 
@@ -62,21 +44,12 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
     uint256 public maximumDETHSupply;
 
-    address public dapplinkBridge;
-
     struct Init {
         address admin;
         address manager;
         address allocatorService;
         address initiatorService;
-        address returnsAggregator;
         address withdrawalWallet;
-        address dapplinkBridge;
-        IDETH dETH;
-        IDepositContract depositContract;
-        IOracleReadRecord oracle;
-        IL1Pauser pauser;
-        IUnstakeRequestsManager unstakeRequestsManager;
     }
 
     constructor() {
@@ -84,24 +57,11 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
     }
 
     function initialize(Init memory init) external initializer {
-        __AccessControlEnumerable_init();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, init.admin);
+        __L1Base_init(init.admin);
         _grantRole(STAKING_MANAGER_ROLE, init.manager);
         _grantRole(ALLOCATOR_SERVICE_ROLE, init.allocatorService);
         _grantRole(INITIATOR_SERVICE_ROLE, init.initiatorService);
 
-        // _setRoleAdmin(STAKING_ALLOWLIST_MANAGER_ROLE, STAKING_MANAGER_ROLE);
-        // _setRoleAdmin(STAKING_ALLOWLIST_ROLE, STAKING_ALLOWLIST_MANAGER_ROLE);
-        // _grantRole(STAKING_ALLOWLIST_ROLE, init.manager);
-
-        dETH = init.dETH;
-        depositContract = init.depositContract;
-        oracle = init.oracle;
-        pauser = init.pauser;
-        returnsAggregator = init.returnsAggregator;
-        unstakeRequestsManager = init.unstakeRequestsManager;
-        dapplinkBridge = init.dapplinkBridge;
         withdrawalWallet = init.withdrawalWallet;
 
         minimumUnstakeBound = 0.01 ether;
@@ -113,7 +73,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
     }
 
     function stake(uint256 stakeAmount) external onlyDappLinkBridge payable {
-        if (pauser.isStakingPaused()) {
+        if (getL1Pauser().isStakingPaused()) {
             revert Paused();
         }
 
@@ -122,12 +82,12 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         }
 
         uint256 dETHMintAmount = ethToDETH(stakeAmount);
-        if (dETHMintAmount + dETH.totalSupply() > maximumDETHSupply) {
+        if (dETHMintAmount + getDETH().totalSupply() > maximumDETHSupply) {
             revert MaximumDETHSupplyExceeded();
         }
 
         unallocatedETH += stakeAmount;
-        emit Staked(dapplinkBridge, stakeAmount, dETHMintAmount);
+        emit Staked(locator.dapplinkBridge(), stakeAmount, dETHMintAmount);
     }
 
     function unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) external  {
@@ -135,7 +95,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
     }
 
     function _unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) internal {
-        if (pauser.isUnstakeRequestsAndClaimsPaused()) {
+        if (getL1Pauser().isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
 
@@ -148,34 +108,34 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
             revert UnstakeBelowMinimudETHAmount(ethAmount, minETHAmount);
         }
 
-        unstakeRequestsManager.create({requester: msg.sender, l2Strategy: l2Strategy, dETHLocked: dethAmount, ethRequested: ethAmount, destChainId: destChainId});
+        getUnstakeRequestsManager().create({requester: msg.sender, l2Strategy: l2Strategy, dETHLocked: dethAmount, ethRequested: ethAmount, destChainId: destChainId});
 
         emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId});
 
-        SafeERC20.safeTransferFrom(dETH, msg.sender, address(unstakeRequestsManager), dethAmount);
+        SafeERC20.safeTransferFrom(getDETH(), msg.sender, locator.unStakingRequestsManager(), dethAmount);
     }
     
     function claimUnstakeRequest(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
-        if (pauser.isUnstakeRequestsAndClaimsPaused()) {
+        if (getL1Pauser().isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
         emit UnstakeRequestClaimed(msg.sender, l2Strategy, bridge, sourceChainId, destChainId);
-        unstakeRequestsManager.claim(l2Strategy, bridge, sourceChainId, destChainId, gasLimit);
+        getUnstakeRequestsManager().claim(l2Strategy, bridge, sourceChainId, destChainId, gasLimit);
     }
     
-    function unstakeRequestInfo(uint256 destChainId, address l2strategy) external view returns (bool, uint256) {
-        return unstakeRequestsManager.requestInfo(destChainId, l2strategy);
+    function unstakeRequestInfo(uint256 destChainId, address l2strategy) external view  returns (bool, uint256) {
+        return getUnstakeRequestsManager().requestInfo(destChainId, l2strategy);
     }
     
     function reclaimAllocatedETHSurplus() external onlyRole(STAKING_MANAGER_ROLE) {
-        unstakeRequestsManager.withdrawAllocatedETHSurplus();
+        getUnstakeRequestsManager().withdrawAllocatedETHSurplus();
     }
     
     function allocateETH(uint256 allocateToUnstakeRequestsManager, uint256 allocateToDeposits)
         external
         onlyRole(ALLOCATOR_SERVICE_ROLE)
     {
-        if (pauser.isAllocateETHPaused()) {
+        if (getL1Pauser().isAllocateETHPaused()) {
             revert Paused();
         }
 
@@ -192,7 +152,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
         if (allocateToUnstakeRequestsManager > 0) {
             emit AllocatedETHToUnstakeRequestsManager(allocateToUnstakeRequestsManager);
-            unstakeRequestsManager.allocateETH{value: allocateToUnstakeRequestsManager}();
+            getUnstakeRequestsManager().allocateETH{value: allocateToUnstakeRequestsManager}();
         }
     }
 
@@ -200,14 +160,14 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         external
         onlyRole(INITIATOR_SERVICE_ROLE)
     {
-        if (pauser.isInitiateValidatorsPaused()) {
+        if (getL1Pauser().isInitiateValidatorsPaused()) {
             revert Paused();
         }
         if (validators.length == 0) {
             return;
         }
 
-        bytes32 actualRoot = depositContract.get_deposit_root();
+        bytes32 actualRoot = getDepositContract().get_deposit_root();
         if (expectedDepositRoot != actualRoot) {
             revert InvalidDepositRoot(actualRoot);
         }
@@ -248,7 +208,7 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
 
         for (uint256 i = 0; i < validators.length; ++i) {
             ValidatorParams calldata validator = validators[i];
-            depositContract.deposit{value: validator.depositAmount}({
+            getDepositContract().deposit{value: validator.depositAmount}({
                 pubkey: validator.pubkey,
                 withdrawal_credentials: validator.withdrawalCredentials,
                 signature: validator.signature,
@@ -265,33 +225,33 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         unallocatedETH += msg.value;
     }
     
-    function ethToDETH(uint256 ethAmount) public view returns (uint256) {
-        if (dETH.totalSupply() == 0) {
+    function ethToDETH(uint256 ethAmount) public returns (uint256) {
+        if (getDETH().totalSupply() == 0) {
             return ethAmount;
         }
         return Math.mulDiv(
             ethAmount,
-            dETH.totalSupply() * uint256(_BASIS_POINTS_DENOMINATOR - exchangeAdjustmentRate),
+            getDETH().totalSupply() * uint256(_BASIS_POINTS_DENOMINATOR - exchangeAdjustmentRate),
             totalControlled() * uint256(_BASIS_POINTS_DENOMINATOR)
         );
     }
     
-    function dETHToETH(uint256 dETHAmount) public view returns (uint256) {
-        if (dETH.totalSupply() == 0) {
+    function dETHToETH(uint256 dETHAmount) public returns (uint256) {
+        if (getDETH().totalSupply() == 0) {
             return dETHAmount;
         }
-        return Math.mulDiv(dETHAmount, totalControlled(), dETH.totalSupply());
+        return Math.mulDiv(dETHAmount, totalControlled(), getDETH().totalSupply());
     }
     
-    function totalControlled() public view returns (uint256) {
-        OracleRecord memory record = oracle.latestRecord();
+    function totalControlled() public returns (uint256) {
+        OracleRecord memory record = IOracleReadRecord(locator.oracleManager()).latestRecord();
         uint256 total = 0;
         total += unallocatedETH;
         total += allocatedETHForDeposits;
         
         total += totalDepositedInValidators - record.cumulativeProcessedDepositAmount;
         total += record.currentTotalValidatorBalance;
-        total += unstakeRequestsManager.balance();
+        total += getUnstakeRequestsManager().balance();
         return total;
     }
     
@@ -317,29 +277,22 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
     }
 
     modifier onlyReturnsAggregator() {
-        if (msg.sender != returnsAggregator) {
+        if (msg.sender != locator.returnsAggregator()) {
             revert NotReturnsAggregator();
         }
         _;
     }
 
     modifier onlyUnstakeRequestsManager() {
-        if (msg.sender != address(unstakeRequestsManager)) {
+        if (msg.sender != locator.unStakingRequestsManager()) {
             revert NotUnstakeRequestsManager();
         }
         _;
     }
 
      modifier onlyDappLinkBridge() {
-        if (msg.sender != address(dapplinkBridge)) {
+        if (msg.sender != locator.dapplinkBridge()) {
             revert NotDappLinkBridge();
-        }
-        _;
-    }
-
-    modifier notZeroAddress(address addr) {
-        if (addr == address(0)) {
-            revert ZeroAddress();
         }
         _;
     }
@@ -397,6 +350,14 @@ contract StakingManager is Initializable, AccessControlEnumerableUpgradeable, St
         emit ProtocolConfigChanged(
             this.setStakingAllowlist.selector, "setStakingAllowlist(bool)", abi.encode(isStakingAllowlist_)
         );
+    }
+
+    function getDETH()internal view returns (IDETH){
+        return IDETH(locator.dETH());
+    }
+
+    function getDepositContract()internal view returns (IDepositContract){
+        return IDepositContract(locator.depositContract());
     }
 
     receive() external payable {

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { StakingManager } from "@/contracts/L1/core/StakingManager.sol";
-
 
 interface IUnstakeRequestsManagerWrite {
     function create(address requester, address l2Strategy, uint256 dETHLocked, uint256 ethRequested, uint256 destChainId) external;

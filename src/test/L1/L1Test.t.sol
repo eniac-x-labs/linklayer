@@ -15,7 +15,7 @@ import "@/contracts/L1/core/UnstakeRequestsManager.sol";
 import "@/contracts/access/L1Pauser.sol";
 
 import "@/contracts/access/proxy/Proxy.sol";
-
+import "@/contracts/L1/core/L1Locator.sol";
 import "@/contracts/L1/interfaces/IDepositContract.sol";
 
 import "forge-std/Test.sol";
@@ -29,7 +29,7 @@ contract L1Test is Test {
     StakingManager         public stakingManager;
     UnstakeRequestsManager public unstakeRequestsManager;
     L1Pauser               public dappLinkPauser;
-
+    L1Locator              public l1Locator;
 
     Proxy proxyDappLinkPauser;
     Proxy proxyDETH;
@@ -47,6 +47,7 @@ contract L1Test is Test {
         vm.startPrank(admin);
         // vm.startBroadcast();
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
+        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testnet
         dappLinkProxyAdmin = new ProxyAdmin(admin);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();
@@ -68,6 +69,21 @@ contract L1Test is Test {
         proxyUnstakeRequestsManager = new Proxy(address(unstakeRequestsManager), address(admin), "");
 
 
+        
+        L1Locator.Config memory _config = L1Locator.Config({
+            stakingManager: address(proxyStakingManager),
+            unStakingRequestsManager: address(proxyUnstakeRequestsManager),
+            dETH: address(proxyDETH),
+            pauser: address(proxyDappLinkPauser),
+            returnsAggregator: address(proxyReturnsAggregator),
+            oracleManager: address(proxyOracleManager),
+            oracleQuorumManager: address(proxyOracleQuorumManager),
+            consensusLayerReceiver: address(proxyConsensusLayerReceiver),
+            executionLayerReceiver: address(proxyExecutionLayerReceiver),
+            dapplinkBridge: dapplinkBridge,
+            depositContract: depositAddress
+        });
+        l1Locator = new L1Locator(_config);
         //====================== initialize ======================
         {
             L1Pauser.Init memory initInfo = L1Pauser.Init({
@@ -83,11 +99,10 @@ contract L1Test is Test {
         {
             DETH.Init memory initDeth = DETH.Init({
                 admin: admin,
-                l2ShareAddress: admin,
-                staking: IStakingManager(address(proxyStakingManager)),
-                unstakeRequestsManager: IUnstakeRequestsManager(address(proxyUnstakeRequestsManager))
+                l2ShareAddress: admin
             });
             DETH(address(proxyDETH)).initialize(initDeth);
+            DETH(address(proxyDETH)).setLocator(address(l1Locator));
         }
 
         {
@@ -97,10 +112,10 @@ contract L1Test is Test {
                 admin: admin,
                 reporterModifier: admin,
                 manager: admin,
-                allowedReporters: allowedReporters,
-                oracle: IOracleManager(address(proxyOracleManager))
+                allowedReporters: allowedReporters
             });
             OracleQuorumManager(address(proxyOracleQuorumManager)).initialize(initOracleQuorumManager);
+            OracleQuorumManager(address(proxyOracleQuorumManager)).setLocator(address(l1Locator));
         }
 
          {
@@ -117,11 +132,6 @@ contract L1Test is Test {
             ReturnsAggregator.Init memory initReturnsAggregator = ReturnsAggregator.Init({
                 admin: admin,
                 manager: admin,
-                oracle: IOracleManager(address(proxyOracleManager)),
-                pauser: dappLinkPauser,
-                consensusLayerReceiver: ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))),
-                executionLayerReceiver: ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))),
-                staking: IStakingManager(address(proxyStakingManager)),
                 feesReceiver: payable(admin)
             });
             ReturnsAggregator(payable(address(proxyReturnsAggregator))).initialize(initReturnsAggregator);
@@ -133,16 +143,10 @@ contract L1Test is Test {
                 manager: admin,
                 allocatorService: admin,
                 initiatorService: admin,
-                returnsAggregator: admin,
-                withdrawalWallet: address(proxyConsensusLayerReceiver),
-                dapplinkBridge: admin,
-                dETH: IDETH(address(proxyDETH)),
-                depositContract: IDepositContract(depositAddress),
-                oracle: IOracleManager(address(proxyOracleManager)),
-                pauser: IL1Pauser(address(proxyDappLinkPauser)),
-                unstakeRequestsManager: unstakeRequestsManager
+                withdrawalWallet: address(proxyConsensusLayerReceiver)
             });
             StakingManager(payable(address(proxyStakingManager))).initialize(initStakingManager);
+            StakingManager(payable(address(proxyStakingManager))).setLocator(address(l1Locator));
             // StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
          }
 
@@ -151,12 +155,10 @@ contract L1Test is Test {
                 admin: admin,
                 manager: admin,
                 requestCanceller: admin,
-                dETH: IDETH(address(proxyDETH)),
-                stakingContract: IStakingManager(address(proxyStakingManager)),
-                oracle: IOracleManager(address(proxyOracleManager)),
                 numberOfBlocksToFinalize: 64
             });
             UnstakeRequestsManager(payable(address(proxyUnstakeRequestsManager))).initialize(initUnstakeRequestsManager);
+            UnstakeRequestsManager(payable(address(proxyUnstakeRequestsManager))).setLocator(address(l1Locator));
         }
 
 
@@ -165,12 +167,10 @@ contract L1Test is Test {
                 admin: admin,
                 manager: admin,
                 oracleUpdater: admin,
-                pendingResolver: admin,
-                aggregator: IReturnsAggregator(address(proxyReturnsAggregator)),
-                pauser: IL1Pauser(address(proxyDappLinkPauser)),
-                staking: IStakingManager(address(proxyStakingManager))
+                pendingResolver: admin
             });
             OracleManager(address(proxyOracleManager)).initialize(initOracle);
+            OracleManager(address(proxyOracleManager)).setLocator(address(l1Locator));
         }
 
 

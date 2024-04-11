@@ -53,7 +53,7 @@ contract StrategyManager is
         _;
     }
 
-      modifier onlyRelayer() {
+    modifier onlyRelayer() {
         require(msg.sender == relayer, "StrategyManager.onlyRelayer");
         _;
     }
@@ -180,7 +180,7 @@ contract StrategyManager is
     ) external onlyDelegationManager {
         uint256 l1BackShares = stakerStrategyL1BackShares[recipient][strategy];
         require(
-            l1BackShares == shares,
+            l1BackShares >= shares,
             "StrategyManager.withdrawSharesAsWeth: The Layer1 of DETH hasn't been completely released yet"
         );
         strategy.withdraw(recipient, weth, shares);

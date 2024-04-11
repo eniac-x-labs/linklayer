@@ -22,6 +22,8 @@ abstract contract DelegationManagerStorage is IDelegationManager {
 
     mapping(address => mapping(IStrategy => uint256)) public operatorShares;
 
+    mapping(address => mapping(IStrategy => mapping(address => uint256))) public stakerStrategyOperatorShares;
+
     mapping(address => OperatorDetails) internal _operatorDetails;
 
     mapping(address => address) public delegatedTo;

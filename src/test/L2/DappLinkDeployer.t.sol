@@ -107,7 +107,7 @@ contract DappLinkDeployer is Test {
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
 
-        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin), IStrategyManager(address(proxyStrategyManager)));
+        L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin));
 
         {
             address dappLinkAddr = address(0xB8c77482e45F1F44dE1745F52C74426C631bDD52);
