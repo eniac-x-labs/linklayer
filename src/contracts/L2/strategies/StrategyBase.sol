@@ -35,7 +35,7 @@ contract StrategyBase is Initializable, IStrategy {
 
 
     event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,
-        address tokenAddress, uint256 bridgeEthAmount ,uint256 batchId);
+        address tokenAddress, uint256 bridgeEthAmount ,uint256 batchId, uint256 nonce);
 
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
@@ -200,7 +200,8 @@ contract StrategyBase is Initializable, IStrategy {
                 abi.encodeWithSignature("BridgeInitiateETHForStaking(uint256,uint256,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr,nextNonce)
             );
 
-            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, ETHAddress.EthAddress, amountBridge,batchId);
+            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
+                l1StakingManagerAddr, ETHAddress.EthAddress, amountBridge,batchId,nextNonce);
             return success;
         }
         return false;
@@ -216,7 +217,8 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateERC20ForStaking(uint256,uint256,address,address,uint256,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge,nextNonce)
             );
-            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, address(stakingWeth), amountBridge,batchId);
+            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
+                l1StakingManagerAddr, address(stakingWeth), amountBridge,batchId,nextNonce);
             return success;
         }
         return false;
