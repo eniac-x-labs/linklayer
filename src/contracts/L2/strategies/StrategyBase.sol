@@ -30,6 +30,9 @@ contract StrategyBase is Initializable, IStrategy {
 
     IL2Pauser public pauser;
 
+    uint256 public nextNonce;
+
+
 
     event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,
         address tokenAddress, uint256 bridgeEthAmount ,uint256 batchId);
@@ -57,6 +60,7 @@ contract StrategyBase is Initializable, IStrategy {
         _initializeStrategyBase(_stakingWeth, _pauser);
         strategyManager = _strategyManager;
         relayer = _relayer;
+        nextNonce = 1;
     }
 
     function _initializeStrategyBase(
@@ -188,11 +192,12 @@ contract StrategyBase is Initializable, IStrategy {
     function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, uint256 gasLimit, uint256 batchId) external payable onlyRelayer returns (bool) {
         if (address(this).balance > 32e18) {
             uint256 amountBridge = ((address(this).balance) / 32e18) * 32e18;
+            nextNonce++;
             bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
+                abi.encodeWithSignature("BridgeInitiateETHForStaking(uint256,uint256,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr,nextNonce)
             );
 
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, ETHAddress.EthAddress, amountBridge,batchId);
@@ -204,11 +209,12 @@ contract StrategyBase is Initializable, IStrategy {
     function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, address wethAddress, uint256 gasLimit, uint256 batchId) external payable onlyRelayer returns (bool) {
         if (stakingWeth.balanceOf(address(this)) >= 32e18) {
             uint256 amountBridge = (stakingWeth.balanceOf(address(this)) / 32e18) * 32e18;
+            nextNonce++;
             bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
+                abi.encodeWithSignature("BridgeInitiateERC20ForStaking(uint256,uint256,address,address,uint256,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge,nextNonce)
             );
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, address(stakingWeth), amountBridge,batchId);
             return success;
