@@ -197,7 +197,7 @@ contract StrategyBase is Initializable, IStrategy {
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateETHForStaking(uint256,uint256,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr,nextNonce)
+                abi.encodeWithSignature("BridgeInitiateETHForStaking(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
 
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
@@ -215,7 +215,7 @@ contract StrategyBase is Initializable, IStrategy {
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateERC20ForStaking(uint256,uint256,address,address,uint256,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge,nextNonce)
+                abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
                 l1StakingManagerAddr, address(stakingWeth), amountBridge,batchId,nextNonce);
