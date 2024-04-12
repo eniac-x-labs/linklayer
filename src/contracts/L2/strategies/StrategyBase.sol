@@ -197,7 +197,7 @@ contract StrategyBase is Initializable, IStrategy {
                 bridge,
                 gasLimit,
                 amountBridge,
-                abi.encodeWithSignature("BridgeInitiateETHForStaking(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
+                abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
 
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
