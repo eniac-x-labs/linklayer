@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@/test/L1/L1Test.t.sol";
 contract StakingManagerTest is L1Test{
-    address admin = 0x8061C28b479B846872132F593bC7cbC6b6C9D628;
+    address admin = msg.sender;
     uint256 amount = 32 ether;
     uint128 amount128 = 32 ether;
 
@@ -27,6 +27,17 @@ contract StakingManagerTest is L1Test{
 
         assert(StakingManager(payable(address(proxyStakingManager))).unallocatedETH() == 0);
     }
+
+
+    function testStake()public{
+        vm.startPrank(admin);
+        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne
+
+        StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
+
+        assert(address(proxyStakingManager).balance == 32000000000000000000);
+    }
+
 
     function testStakingManager()public view{
         address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne

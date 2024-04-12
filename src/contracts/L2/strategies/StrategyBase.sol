@@ -32,6 +32,10 @@ contract StrategyBase is Initializable, IStrategy {
 
     IL2Pauser public pauser;
 
+
+    event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,uint256 bridgeEthAmount);
+    event TransferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,uint256 bridgeEthAmount);
+
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
         _;
@@ -192,6 +196,8 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
+
+            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, amountBridge);
             return success;
         }
         return false;
@@ -206,6 +212,7 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
+            emit TransferWETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, amountBridge);
             return success;
         }
         return false;

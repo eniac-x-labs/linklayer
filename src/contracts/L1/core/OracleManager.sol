@@ -70,9 +70,10 @@ contract OracleManager is L1Base, OracleManagerStorage {
 
         maxConsensusLayerLossPPM = 1000;
 
-        _pushRecord(OracleRecord(0, uint64(getStakingManager().initializationBlockNumber()), 0, 0, 0, 0, 0, 0), address(init.manager), address(init.manager), 0, 0);
+   }
+    function initRecord()external onlyRole(ORACLE_PENDING_UPDATE_RESOLVER_ROLE) {
+        _pushRecord(OracleRecord(0, uint64(getStakingManager().initializationBlockNumber()), 0, 0, 0, 0, 0, 0), msg.sender, msg.sender, 0, 0);
     }
-
     function receiveRecord(OracleRecord calldata newRecord, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external {
         if (IL1Pauser(locator.pauser()).isSubmitOracleRecordsPaused()) {
             revert Paused();

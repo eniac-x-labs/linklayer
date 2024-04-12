@@ -42,12 +42,12 @@ contract L1Test is Test {
     Proxy proxyUnstakeRequestsManager;
 
     function setUp() external {
-        address admin = 0x8061C28b479B846872132F593bC7cbC6b6C9D628;
+        address admin = msg.sender;
         vm.deal(admin, 1000 ether);
         vm.startPrank(admin);
         // vm.startBroadcast();
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
-        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testnet
+        address dapplinkBridge = msg.sender; // holesky testnet
         dappLinkProxyAdmin = new ProxyAdmin(admin);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();
@@ -126,6 +126,10 @@ contract L1Test is Test {
             });
             ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))).initialize(initReturnsReceiver);
             ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))).initialize(initReturnsReceiver);
+
+            ReturnsReceiver(payable(address(proxyConsensusLayerReceiver))).setLocator(address(l1Locator));
+
+            ReturnsReceiver(payable(address(proxyExecutionLayerReceiver))).setLocator(address(l1Locator));
          }
 
         {
@@ -135,6 +139,7 @@ contract L1Test is Test {
                 feesReceiver: payable(admin)
             });
             ReturnsAggregator(payable(address(proxyReturnsAggregator))).initialize(initReturnsAggregator);
+            ReturnsAggregator(payable(address(proxyReturnsAggregator))).setLocator(address(l1Locator));
         }
 
         {
@@ -171,6 +176,9 @@ contract L1Test is Test {
             });
             OracleManager(address(proxyOracleManager)).initialize(initOracle);
             OracleManager(address(proxyOracleManager)).setLocator(address(l1Locator));
+
+            OracleManager(address(proxyOracleManager)).initRecord();
+
         }
 
 

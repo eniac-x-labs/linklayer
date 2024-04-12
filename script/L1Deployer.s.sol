@@ -170,6 +170,7 @@ contract L1Deployer is Script {
             });
             OracleManager(address(proxyOracleManager)).initialize(initOracle);
             OracleManager(address(proxyOracleManager)).setLocator(address(l1Locator));
+            OracleManager(address(proxyOracleManager)).initRecord();
         }
 
 
