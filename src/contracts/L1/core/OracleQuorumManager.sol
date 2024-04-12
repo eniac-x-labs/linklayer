@@ -139,6 +139,6 @@ contract OracleQuorumManager is
     }
 
     function getOracle()internal view returns (IOracleManager) {
-        return IOracleManager(locator.oracleManager());
+        return IOracleManager(getLocator().oracleManager());
     }
 }

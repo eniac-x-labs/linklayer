@@ -75,7 +75,7 @@ contract OracleManager is L1Base, OracleManagerStorage {
         _pushRecord(OracleRecord(0, uint64(getStakingManager().initializationBlockNumber()), 0, 0, 0, 0, 0, 0), msg.sender, msg.sender, 0, 0);
     }
     function receiveRecord(OracleRecord calldata newRecord, address bridge, address l2Strategy, uint256 sourceChainId, uint256 destChainId) external {
-        if (IL1Pauser(locator.pauser()).isSubmitOracleRecordsPaused()) {
+        if (IL1Pauser(getLocator().pauser()).isSubmitOracleRecordsPaused()) {
             revert Paused();
         }
 
@@ -106,7 +106,7 @@ contract OracleManager is L1Base, OracleManagerStorage {
                 bound: bound
             });
 
-            IL1Pauser(locator.pauser()).pauseAll();
+            IL1Pauser(getLocator().pauser()).pauseAll();
             return;
         }
         _pushRecord(newRecord, bridge, l2Strategy, sourceChainId, destChainId);
@@ -145,7 +145,7 @@ contract OracleManager is L1Base, OracleManagerStorage {
         emit OracleRecordModified(idx, record);
 
         if (missingRewards > 0 || missingPrincipals > 0) {
-            IReturnsAggregator(locator.returnsAggregator()).processReturns({
+            IReturnsAggregator(getLocator().returnsAggregator()).processReturns({
                 rewardAmount: missingRewards,
                 principalAmount: missingPrincipals,
                 shouldIncludeELRewards: false,
@@ -277,7 +277,7 @@ contract OracleManager is L1Base, OracleManagerStorage {
         emit OracleRecordAdded(_records.length, record);
         _records.push(record);
 
-        IReturnsAggregator(locator.returnsAggregator()).processReturns({
+        IReturnsAggregator(getLocator().returnsAggregator()).processReturns({
             rewardAmount: record.windowWithdrawnRewardAmount,
             principalAmount: record.windowWithdrawnPrincipalAmount,
             shouldIncludeELRewards: true,

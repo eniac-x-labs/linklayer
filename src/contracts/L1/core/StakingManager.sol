@@ -93,7 +93,7 @@ contract StakingManager is L1Base, StakingManagerStorage{
 
         getDETH().batchMint(batchMints);
 
-        emit Staked(locator.dapplinkBridge(), stakeAmount, dETHMintAmount);
+        emit Staked(getLocator().dapplinkBridge(), stakeAmount, dETHMintAmount);
     }
 
     function unstakeRequest(uint128 dethAmount, uint128 minETHAmount, address l2Strategy, uint256 destChainId) external  {
@@ -118,7 +118,7 @@ contract StakingManager is L1Base, StakingManagerStorage{
 
         emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId});
 
-        SafeERC20.safeTransferFrom(getDETH(), msg.sender, locator.unStakingRequestsManager(), dethAmount);
+        SafeERC20.safeTransferFrom(getDETH(), msg.sender, getLocator().unStakingRequestsManager(), dethAmount);
     }
     
     function claimUnstakeRequest(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
@@ -250,7 +250,7 @@ contract StakingManager is L1Base, StakingManagerStorage{
     }
     
     function totalControlled() public returns (uint256) {
-        OracleRecord memory record = IOracleReadRecord(locator.oracleManager()).latestRecord();
+        OracleRecord memory record = IOracleReadRecord(getLocator().oracleManager()).latestRecord();
         uint256 total = 0;
         total += unallocatedETH;
         total += allocatedETHForDeposits;
@@ -283,21 +283,21 @@ contract StakingManager is L1Base, StakingManagerStorage{
     }
 
     modifier onlyReturnsAggregator() {
-        if (msg.sender != locator.returnsAggregator()) {
+        if (msg.sender != getLocator().returnsAggregator()) {
             revert NotReturnsAggregator();
         }
         _;
     }
 
     modifier onlyUnstakeRequestsManager() {
-        if (msg.sender != locator.unStakingRequestsManager()) {
+        if (msg.sender != getLocator().unStakingRequestsManager()) {
             revert NotUnstakeRequestsManager();
         }
         _;
     }
 
      modifier onlyDappLinkBridge() {
-        if (msg.sender != locator.dapplinkBridge()) {
+        if (msg.sender != getLocator().dapplinkBridge()) {
             revert NotDappLinkBridge();
         }
         _;
@@ -359,11 +359,11 @@ contract StakingManager is L1Base, StakingManagerStorage{
     }
 
     function getDETH()internal view returns (IDETH){
-        return IDETH(locator.dETH());
+        return IDETH(getLocator().dETH());
     }
 
     function getDepositContract()internal view returns (IDepositContract){
-        return IDepositContract(locator.depositContract());
+        return IDepositContract(getLocator().depositContract());
     }
 
     receive() external payable {

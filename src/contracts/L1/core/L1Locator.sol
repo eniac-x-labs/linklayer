@@ -20,17 +20,17 @@ contract L1Locator {
 
     error ZeroAddress();
 
-    address public immutable stakingManager;
-    address public immutable unStakingRequestsManager;
-    address public immutable dETH;
-    address public immutable pauser;
-    address public immutable returnsAggregator;
-    address public immutable oracleManager;
-    address public immutable oracleQuorumManager;
-    address public immutable consensusLayerReceiver;
-    address public immutable executionLayerReceiver;
-    address public immutable dapplinkBridge;
-    address public immutable depositContract;
+    address public stakingManager;
+    address public unStakingRequestsManager;
+    address public dETH;
+    address public pauser;
+    address public returnsAggregator;
+    address public oracleManager;
+    address public oracleQuorumManager;
+    address public consensusLayerReceiver;
+    address public executionLayerReceiver;
+    address public dapplinkBridge;
+    address public depositContract;
     
 
     /**
@@ -55,5 +55,9 @@ contract L1Locator {
     function _assertNonZero(address _address) internal pure returns (address) {
         if (_address == address(0)) revert ZeroAddress();
         return _address;
+    }
+
+    function setStakingManager(address _stakingManager) external {
+        stakingManager = _stakingManager;
     }
 }

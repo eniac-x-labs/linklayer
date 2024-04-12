@@ -116,7 +116,7 @@ contract UnstakeRequestsManager is
             return;
         }
         allocatedETHForClaims -= toSend;
-        IStakingManagerReturnsWrite(locator.stakingManager()).receiveFromUnstakeRequestsManager{value: toSend}();
+        IStakingManagerReturnsWrite(getLocator().stakingManager()).receiveFromUnstakeRequestsManager{value: toSend}();
     }
 
     function requestByID(uint256 destChainId, address l2Strategy) external view returns (uint256, uint256, uint256){
@@ -173,17 +173,17 @@ contract UnstakeRequestsManager is
     }
     
     function _isFinalized(uint256 blockNumber) internal view returns (bool) {
-        return (blockNumber + numberOfBlocksToFinalize) <= IOracleReadRecord(locator.oracleManager()).latestRecord().updateEndBlock;
+        return (blockNumber + numberOfBlocksToFinalize) <= IOracleReadRecord(getLocator().oracleManager()).latestRecord().updateEndBlock;
     }
 
     modifier onlyStakingContract() {
-        if (msg.sender != locator.stakingManager()) {
+        if (msg.sender != getLocator().stakingManager()) {
             revert NotStakingManagerContract();
         }
         _;
     }
     function getDETH()internal view returns (IDETH){
-        return IDETH(locator.dETH());
+        return IDETH(getLocator().dETH());
     }
     receive() external payable {
         revert DoesNotReceiveETH();

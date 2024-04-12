@@ -39,7 +39,7 @@ contract L1Deployer is Script {
         vm.startBroadcast();
         address admin = msg.sender;
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
-        address dapplinkBridge = 0xF74bF55367643521e283c1263C97824E03f9D7c1; // holesky testnet
+        address dapplinkBridge = 0x78de729757Ef7C48c76C9EEe35B38Cc7108d59ca; // holesky testnet
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();
@@ -175,7 +175,7 @@ contract L1Deployer is Script {
 
 
         
-
+        vm.writeFile("data/L1/locator.addr", vm.toString(address(proxyDETH)));
         vm.writeFile("data/L1/proxyDappLinkPauser.addr", vm.toString(address(proxyDappLinkPauser)));
         vm.writeFile("data/L1/proxyDETH.addr", vm.toString(address(proxyDETH)));
         vm.writeFile("data/L1/proxyOracleManager.addr", vm.toString(address(proxyOracleManager)));

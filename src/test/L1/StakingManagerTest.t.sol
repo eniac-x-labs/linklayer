@@ -33,7 +33,11 @@ contract StakingManagerTest is L1Test{
         vm.startPrank(admin);
         address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne
 
-        // StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
+        IDETH.BatchMint memory dm = IDETH.BatchMint({staker:admin,amount:amount});
+        IDETH.BatchMint[]  memory bms = new IDETH.BatchMint[](1);
+        //创建IDETH.BatchMint[] 并将dm赋值给bms[0]
+        bms[0] = dm;
+        StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000,bms );
 
         assert(address(proxyStakingManager).balance == 32000000000000000000);
     }
@@ -41,7 +45,7 @@ contract StakingManagerTest is L1Test{
 
     function testStakingManager()public view{
         address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne
-        address dBridge = StakingManager(payable(address(proxyStakingManager))).locator().dapplinkBridge();
+        address dBridge = StakingManager(payable(address(proxyStakingManager))).getLocator().dapplinkBridge();
         assert(dapplinkBridge == dBridge);
     }
 

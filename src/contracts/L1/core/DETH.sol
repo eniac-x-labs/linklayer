@@ -29,15 +29,15 @@ contract DETH is L1Base, ERC20PermitUpgradeable, IDETH {
     }
 
     function mint(address staker, uint256 amount) external {
-        if (msg.sender != locator.stakingManager()) {
+        if (msg.sender != getLocator().stakingManager()) {
             revert NotStakingManagerContract();
         }
         _mint(staker, amount);
     }
 
     function batchMint(BatchMint[] calldata batcher) external {
-        if (msg.sender != l2ShareAddress) {
-            revert NotL2ShareAddress();
+        if (msg.sender != getLocator().stakingManager()) {
+            revert NotStakingManagerContract();
         }
         for (uint256 i =0; i < batcher.length; i++) {
             _mint(batcher[i].staker, batcher[i].amount);
@@ -45,7 +45,7 @@ contract DETH is L1Base, ERC20PermitUpgradeable, IDETH {
     }
 
     function burn(uint256 amount) external {
-        if (msg.sender != locator.unStakingRequestsManager()) {
+        if (msg.sender != getLocator().unStakingRequestsManager()) {
             revert NotUnstakeRequestsManagerContract();
         }
         _burn(msg.sender, amount);

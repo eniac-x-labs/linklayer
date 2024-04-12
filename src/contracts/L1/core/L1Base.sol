@@ -11,7 +11,7 @@ import { IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.s
 import { IStakingManager } from "../interfaces/IStakingManager.sol";
 
 abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, ReentrancyGuardUpgradeable, ProtocolEvents {
-    L1ILocator public locator;
+    address public locator;
 
     error ZeroAddress();
      /**
@@ -23,19 +23,23 @@ abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, R
     }
 
     function setLocator(address _locator) external  {
-        locator = L1ILocator(_locator);
+        locator = _locator;
+    }
+
+    function getLocator() public view returns (L1ILocator) {
+        return L1ILocator(locator);
     }
     
     function getL1Pauser()internal view returns (IL1Pauser){
-        return IL1Pauser(locator.pauser());
+        return IL1Pauser(getLocator().pauser());
     }
 
     function getUnstakeRequestsManager()internal view returns (IUnstakeRequestsManager){
-        return IUnstakeRequestsManager(locator.unStakingRequestsManager());
+        return IUnstakeRequestsManager(getLocator().unStakingRequestsManager());
     }
 
     function getStakingManager()internal view returns (IStakingManager){
-        return IStakingManager(locator.stakingManager());
+        return IStakingManager(getLocator().stakingManager());
     }
     
     modifier notZeroAddress(address addr) {
@@ -45,11 +49,11 @@ abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, R
         _;
     }
     // function getStrategyManager()external returns (IStrategyManager){
-    //     return IStrategyManager(locator.strategyManager());
+    //     return IStrategyManager(getLocator().strategyManager());
     // }
 
     // modifier onlyRelayer() {
-    //     require(msg.sender == locator.relayer(), "StrategyManager.onlyRelayer");
+    //     require(msg.sender == getLocator().relayer(), "StrategyManager.onlyRelayer");
     //     _;
     // }
 }

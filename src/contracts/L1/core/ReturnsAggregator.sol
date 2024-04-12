@@ -45,7 +45,7 @@ contract ReturnsAggregator is L1Base, IReturnsAggregator {
         external
         assertBalanceUnchanged
     {
-        if (msg.sender != locator.oracleManager()) {
+        if (msg.sender != getLocator().oracleManager()) {
             revert NotOracle();
         }
 
@@ -54,7 +54,7 @@ contract ReturnsAggregator is L1Base, IReturnsAggregator {
 
         uint256 elRewards = 0;
         if (shouldIncludeELRewards) {
-            elRewards = locator.executionLayerReceiver().balance;
+            elRewards = getLocator().executionLayerReceiver().balance;
             totalRewards += elRewards;
         }
 
@@ -70,12 +70,12 @@ contract ReturnsAggregator is L1Base, IReturnsAggregator {
             );
         }
         if (clTotal > 0) {
-            ReturnsReceiver(payable (locator.consensusLayerReceiver())).transfer(self, clTotal);
+            ReturnsReceiver(payable (getLocator().consensusLayerReceiver())).transfer(self, clTotal);
         }
 
         uint256 netReturns = clTotal + elRewards - fees;
         if (netReturns > 0) {
-            IStakingManagerReturnsWrite(locator.stakingManager()).receiveReturns{value: netReturns}();
+            IStakingManagerReturnsWrite(getLocator().stakingManager()).receiveReturns{value: netReturns}();
         }
 
         if (fees > 0) {
