@@ -39,7 +39,7 @@ contract L1Deployer is Script {
         vm.startBroadcast();
         address admin = msg.sender;
         address depositAddress = 0x4242424242424242424242424242424242424242; // holesky testnet
-        address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testnet
+        address dapplinkBridge = 0xF74bF55367643521e283c1263C97824E03f9D7c1; // holesky testnet
         dappLinkProxyAdmin = new ProxyAdmin(msg.sender);
         dappLinkPauser = new L1Pauser();
         dETH = new DETH();

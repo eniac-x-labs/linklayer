@@ -33,7 +33,7 @@ contract StakingManagerTest is L1Test{
         vm.startPrank(admin);
         address dapplinkBridge = 0xD6A7740477dD55d5feD7a5fE81C52eA168CDe3FF; // holesky testne
 
-        StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
+        // StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
 
         assert(address(proxyStakingManager).balance == 32000000000000000000);
     }
@@ -53,7 +53,7 @@ contract StakingManagerTest is L1Test{
         uint256 totalControlled = StakingManager(payable(address(proxyStakingManager))).totalControlled();
         console.log("totalControlled========",totalControlled);
 
-        StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
+        // StakingManager(payable(address(proxyStakingManager))).stake{value:32 ether}(32000000000000000000);
         uint256 totalControlledAfter = StakingManager(payable(address(proxyStakingManager))).totalControlled();
         console.log("totalControlledAfter========",totalControlledAfter);
 

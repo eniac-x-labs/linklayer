@@ -72,7 +72,10 @@ contract StakingManager is L1Base, StakingManagerStorage{
         maximumDETHSupply = 1024 ether;
     }
 
-    function stake(uint256 stakeAmount) external onlyDappLinkBridge payable {
+    //function withdraw()external{
+     //  msg.sender.call{value: address(this).balance}("");
+    //}
+    function stake(uint256 stakeAmount,IDETH.BatchMint[] calldata batchMints) external onlyDappLinkBridge payable {
         if (getL1Pauser().isStakingPaused()) {
             revert Paused();
         }
@@ -87,6 +90,9 @@ contract StakingManager is L1Base, StakingManagerStorage{
         }
 
         unallocatedETH += stakeAmount;
+
+        getDETH().batchMint(batchMints);
+
         emit Staked(locator.dapplinkBridge(), stakeAmount, dETHMintAmount);
     }
 
