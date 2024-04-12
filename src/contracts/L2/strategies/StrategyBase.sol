@@ -11,8 +11,6 @@ import "../../libraries/ETHAddress.sol";
 import "../../libraries/SafeCall.sol";
 
 
-
-
 contract StrategyBase is Initializable, IStrategy {
     using SafeERC20 for IERC20;
 
@@ -33,8 +31,9 @@ contract StrategyBase is Initializable, IStrategy {
     IL2Pauser public pauser;
 
 
-    event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,uint256 bridgeEthAmount);
-    event TransferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,uint256 bridgeEthAmount);
+    event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,
+        address tokenAddress,
+        uint256 bridgeEthAmount);
 
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
@@ -52,7 +51,7 @@ contract StrategyBase is Initializable, IStrategy {
 
     function initialize(
         IERC20 _stakingWeth,
-        address  _relayer,
+        address _relayer,
         IStrategyManager _strategyManager,
         IL2Pauser _pauser
     ) public virtual initializer {
@@ -131,9 +130,9 @@ contract StrategyBase is Initializable, IStrategy {
 
     function _afterWithdrawal(address recipient, IERC20 weth, uint256 amountToSend) internal virtual {
         if (address(weth) == ETHAddress.EthAddress) {
-             payable(recipient).transfer(amountToSend);
+            payable(recipient).transfer(amountToSend);
         } else {
-             weth.safeTransfer(recipient, amountToSend);
+            weth.safeTransfer(recipient, amountToSend);
         }
     }
 
@@ -197,14 +196,14 @@ contract StrategyBase is Initializable, IStrategy {
                 abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
 
-            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, amountBridge);
+            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, ETHAddress.EthAddress, amountBridge);
             return success;
         }
         return false;
     }
 
     function transferWETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, address wethAddress, uint256 gasLimit) external payable onlyRelayer returns (bool) {
-        if (stakingWeth.balanceOf(address(this)) >= 32e18 ) {
+        if (stakingWeth.balanceOf(address(this)) >= 32e18) {
             uint256 amountBridge = (stakingWeth.balanceOf(address(this)) / 32e18) * 32e18;
             bool success = SafeCall.callWithMinGas(
                 bridge,
@@ -212,7 +211,7 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
-            emit TransferWETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, amountBridge);
+            emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge, l1StakingManagerAddr, address(stakingWeth), amountBridge);
             return success;
         }
         return false;
