@@ -32,7 +32,9 @@ contract StrategyBase is Initializable, IStrategy {
 
     uint256 public nextNonce;
 
+    uint256 public virtualEthBalance;
 
+    uint256 public virtualWethBalance;
 
     event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,
         address tokenAddress, uint256 bridgeEthAmount ,uint256 batchId, uint256 nonce);
@@ -78,7 +80,7 @@ contract StrategyBase is Initializable, IStrategy {
 
         require(pauser.isStrategyDeposit(), "StrategyBase:deposit paused");
 
-        _beforeDeposit(weth);
+        _beforeDeposit(weth, amount);
 
         uint256 priorTotalShares = totalShares;
 
@@ -121,8 +123,14 @@ contract StrategyBase is Initializable, IStrategy {
         _afterWithdrawal(recipient, weth, amountToSend);
     }
 
-    function _beforeDeposit(IERC20 weth) internal virtual {
+    function _beforeDeposit(IERC20 weth, uint256 amount) internal virtual {
         require(weth == stakingWeth || address(weth) == ETHAddress.EthAddress, "StrategyBase.deposit: Can only deposit stakingWeth and eth");
+        if (address(weth) == ETHAddress.EthAddress) {
+            virtualEthBalance += amount;
+        }
+        if (weth == stakingWeth) {
+            virtualWethBalance += amount;
+        }
     }
 
 
@@ -134,8 +142,10 @@ contract StrategyBase is Initializable, IStrategy {
     function _afterWithdrawal(address recipient, IERC20 weth, uint256 amountToSend) internal virtual {
         if (address(weth) == ETHAddress.EthAddress) {
             payable(recipient).transfer(amountToSend);
+            virtualEthBalance -= amountToSend;
         } else {
             weth.safeTransfer(recipient, amountToSend);
+            virtualWethBalance -= amountToSend;
         }
     }
 
@@ -178,15 +188,15 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function ethWethBalance() internal view virtual returns (uint256) {
-        return stakingWeth.balanceOf(address(this)) + address(this).balance;
+        return virtualEthBalance + virtualWethBalance;
     }
 
     function ETHBalance() external view virtual returns (uint256) {
-        return address(this).balance;
+        return virtualEthBalance;
     }
 
     function WETHBalance() external view virtual returns (uint256) {
-        return stakingWeth.balanceOf(address(this));
+        return virtualWethBalance;
     }
 
     function transferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr, uint256 gasLimit, uint256 batchId) external payable onlyRelayer returns (bool) {
@@ -225,5 +235,5 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
 
-    uint256[48] private __gap;
+    uint256[46] private __gap;
 }
