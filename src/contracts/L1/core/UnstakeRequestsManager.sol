@@ -45,7 +45,6 @@ contract UnstakeRequestsManager is
         uint256 numberOfBlocksToFinalize;
     }
 
-
     constructor() {
         _disableInitializers();
     }
@@ -76,18 +75,19 @@ contract UnstakeRequestsManager is
         );
     }
 
-    function claim(address[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract {
-
+    function claim(requestsInfo[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract {
         if (requests.length == 0) {
             revert NoRequests();
         }
+
         for (uint256 i = 0; i < requests.length; i++) {
-            address requester = requests[i];
-            _claim(requester, sourceChainId, destChainId, gasLimit);
+            address requester = requests[i].requestAddress;
+            uint256 unStakeMessageNonce  = requests[i].unStakeMessageNonce;
+            _claim(requester, unStakeMessageNonce, sourceChainId, destChainId, gasLimit);
         }
-        
     }
-    function _claim(address requester, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) private {
+
+    function _claim(address requester, uint256 unStakeMessageNonce, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) private {
 
         uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][requester];
         uint256 ethRequested = l2ChainStrategyAmount[destChainId][requester];
@@ -97,6 +97,7 @@ contract UnstakeRequestsManager is
         delete dEthLockedAmount[destChainId][requester];
         delete l2ChainStrategyBlockNumber[destChainId][requester];
 
+        // Todo: Will addresses it in the future
         // if (!_isFinalized(csBlockNumber)) {
         //     revert NotFinalized();
         // }
@@ -106,7 +107,9 @@ contract UnstakeRequestsManager is
             ethRequested: ethRequested,
             dETHLocked: dETHLocked,
             destChainId: destChainId,
-            csBlockNumber: csBlockNumber
+            csBlockNumber: csBlockNumber,
+            bridgeAddress: getLocator().dapplinkBridge(),
+            unStakeMessageNonce: unStakeMessageNonce
         });
         getDETH().burn(dETHLocked);
         bool success = SafeCall.callWithMinGas(
