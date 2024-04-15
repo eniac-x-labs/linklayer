@@ -10,6 +10,7 @@ import { IDETH } from "../interfaces/IDETH.sol";
 import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
 import { StakingManagerStorage } from "./StakingManagerStorage.sol";
 import {L1Base} from "@/contracts/L1/core/L1Base.sol";
+import { IUnstakeRequestsManagerWrite } from "../interfaces/IUnstakeRequestsManager.sol";
 
 
 contract StakingManager is L1Base, StakingManagerStorage{
@@ -43,6 +44,8 @@ contract StakingManager is L1Base, StakingManagerStorage{
 
     uint256 public maximumDETHSupply;
 
+    uint256 public unStakeMessageNonce;
+
     struct Init {
         address admin;
         address manager;
@@ -72,6 +75,7 @@ contract StakingManager is L1Base, StakingManagerStorage{
         initializationBlockNumber = block.number;
 
         maximumDETHSupply = 1024 ether;
+        unStakeMessageNonce = 0;
     }
 
     //function withdraw()external{
@@ -118,16 +122,17 @@ contract StakingManager is L1Base, StakingManagerStorage{
 
         getUnstakeRequestsManager().create({requester: msg.sender, l2Strategy: l2Strategy, dETHLocked: dethAmount, ethRequested: ethAmount, destChainId: destChainId});
 
-        emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId});
+        unStakeMessageNonce++;
+
+        emit UnstakeRequested({staker: msg.sender, l2Strategy: l2Strategy, ethAmount: ethAmount, dETHLocked: dethAmount, destChainId: destChainId, unStakeMessageNonce: unStakeMessageNonce});
 
         SafeERC20.safeTransferFrom(getDETH(), msg.sender, getLocator().unStakingRequestsManager(), dethAmount);
     }
     
-    function claimUnstakeRequest(address[] calldata requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
+    function claimUnstakeRequest(IUnstakeRequestsManagerWrite.requestsInfo[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
         if (getL1Pauser().isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
-        emit UnstakeRequestClaimed(msg.sender, requests,getLocator().dapplinkBridge(), sourceChainId, destChainId);
         getUnstakeRequestsManager().claim(requests, sourceChainId, destChainId, gasLimit);
     }
     
