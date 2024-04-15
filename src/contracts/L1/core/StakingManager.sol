@@ -12,7 +12,6 @@ import { StakingManagerStorage } from "./StakingManagerStorage.sol";
 import {L1Base} from "@/contracts/L1/core/L1Base.sol";
 
 
-
 contract StakingManager is L1Base, StakingManagerStorage{
     mapping(bytes pubkey => bool exists) public usedValidators;
 
@@ -52,9 +51,12 @@ contract StakingManager is L1Base, StakingManagerStorage{
         address withdrawalWallet;
     }
 
+
     constructor() {
         _disableInitializers();
     }
+
+
 
     function initialize(Init memory init) external initializer {
         __L1Base_init(init.admin);
@@ -121,12 +123,12 @@ contract StakingManager is L1Base, StakingManagerStorage{
         SafeERC20.safeTransferFrom(getDETH(), msg.sender, getLocator().unStakingRequestsManager(), dethAmount);
     }
     
-    function claimUnstakeRequest(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
+    function claimUnstakeRequest(address[] calldata requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
         if (getL1Pauser().isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
-        emit UnstakeRequestClaimed(msg.sender, l2Strategy, bridge, sourceChainId, destChainId);
-        getUnstakeRequestsManager().claim(l2Strategy, bridge, sourceChainId, destChainId, gasLimit);
+        emit UnstakeRequestClaimed(msg.sender, requests,getLocator().dapplinkBridge(), sourceChainId, destChainId);
+        getUnstakeRequestsManager().claim(requests, sourceChainId, destChainId, gasLimit);
     }
     
     function unstakeRequestInfo(uint256 destChainId, address l2strategy) external view  returns (bool, uint256) {
@@ -366,11 +368,11 @@ contract StakingManager is L1Base, StakingManagerStorage{
         return IDepositContract(getLocator().depositContract());
     }
 
-    receive() external payable {
-        revert DoesNotReceiveETH();
-    }
+    // receive() external payable {
+    //     revert DoesNotReceiveETH();
+    // }
 
-    fallback() external payable {
-        revert DoesNotReceiveETH();
-    }
+    // fallback() external payable {
+    //     revert DoesNotReceiveETH();
+    // }
 }

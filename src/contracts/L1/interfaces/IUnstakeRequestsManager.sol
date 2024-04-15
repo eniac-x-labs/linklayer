@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 interface IUnstakeRequestsManagerWrite {
     function create(address requester, address l2Strategy, uint256 dETHLocked, uint256 ethRequested, uint256 destChainId) external;
 
-    function claim(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit)  external returns (bool);
+    function claim(address[] calldata l2Strategys, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit)  external ;
 
     function allocateETH() external payable;
 
@@ -31,7 +31,7 @@ interface IUnstakeRequestsManager is IUnstakeRequestsManagerRead, IUnstakeReques
     error NotFinalized();
     error NotRequester();
     error NotStakingManagerContract();
-
+    error NoRequests();
     event UnstakeRequestCreated(
         address indexed requester,
         address indexed strategy,

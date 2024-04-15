@@ -45,6 +45,7 @@ contract UnstakeRequestsManager is
         uint256 numberOfBlocksToFinalize;
     }
 
+
     constructor() {
         _disableInitializers();
     }
@@ -75,22 +76,33 @@ contract UnstakeRequestsManager is
         );
     }
 
-    function claim(address l2Strategy, address bridge, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract returns (bool) {
+    function claim(address[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyStakingContract {
 
-        uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][l2Strategy];
-        uint256 ethRequested = l2ChainStrategyAmount[destChainId][l2Strategy];
-        uint256 dETHLocked = dEthLockedAmount[destChainId][l2Strategy];
-
-        delete l2ChainStrategyAmount[destChainId][l2Strategy];
-        delete dEthLockedAmount[destChainId][l2Strategy];
-        delete l2ChainStrategyBlockNumber[destChainId][l2Strategy];
-
-         if (!_isFinalized(csBlockNumber)) {
-            revert NotFinalized();
+        if (requests.length == 0) {
+            revert NoRequests();
         }
+        for (uint256 i = 0; i < requests.length; i++) {
+            address requester = requests[i];
+            _claim(requester, sourceChainId, destChainId, gasLimit);
+        }
+        
+    }
+    function _claim(address requester, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) private {
+
+        uint256 csBlockNumber = l2ChainStrategyBlockNumber[destChainId][requester];
+        uint256 ethRequested = l2ChainStrategyAmount[destChainId][requester];
+        uint256 dETHLocked = dEthLockedAmount[destChainId][requester];
+
+        delete l2ChainStrategyAmount[destChainId][requester];
+        delete dEthLockedAmount[destChainId][requester];
+        delete l2ChainStrategyBlockNumber[destChainId][requester];
+
+        // if (!_isFinalized(csBlockNumber)) {
+        //     revert NotFinalized();
+        // }
 
         emit UnstakeRequestClaimed({
-            l2strategy: l2Strategy,
+            l2strategy: requester,
             ethRequested: ethRequested,
             dETHLocked: dETHLocked,
             destChainId: destChainId,
@@ -98,12 +110,11 @@ contract UnstakeRequestsManager is
         });
         getDETH().burn(dETHLocked);
         bool success = SafeCall.callWithMinGas(
-            bridge,
+            getLocator().dapplinkBridge(),
             gasLimit,
             ethRequested,
-            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, bridge, ethRequested)
+            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, requester, ethRequested)
         );
-        return success;
     }
 
     function allocateETH() external payable onlyStakingContract {
@@ -185,11 +196,11 @@ contract UnstakeRequestsManager is
     function getDETH()internal view returns (IDETH){
         return IDETH(getLocator().dETH());
     }
-    receive() external payable {
-        revert DoesNotReceiveETH();
-    }
+    // receive() external payable {
+    //     revert DoesNotReceiveETH();
+    // }
 
-    fallback() external payable {
-        revert DoesNotReceiveETH();
-    }
+    // fallback() external payable {
+    //     revert DoesNotReceiveETH();
+    // }
 }

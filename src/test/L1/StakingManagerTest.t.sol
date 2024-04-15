@@ -77,6 +77,16 @@ contract StakingManagerTest is L1Test{
 
     }
 
+    function testClaimReqest()public{
+        vm.startPrank(admin);
+
+        address[] memory stakers = new address[](2);
+        stakers[0] = admin;
+        stakers[1] = 0x4242424242424242424242424242424242424242;
+
+        StakingManager(payable(address(proxyStakingManager))).claimUnstakeRequest(stakers,0,1,100000);
+    }
+
 
     function testSB()public{
    
