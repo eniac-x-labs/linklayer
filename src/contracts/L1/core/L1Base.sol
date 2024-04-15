@@ -22,7 +22,7 @@ abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, R
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
-    function setLocator(address _locator) external  {
+    function setLocator(address _locator) external onlyRole(DEFAULT_ADMIN_ROLE){
         locator = _locator;
     }
 
