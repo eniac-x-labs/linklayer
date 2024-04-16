@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
-import {UnstakeRequestsManager} from "@/contracts/L1/core/UnStakeRequestsManager.sol";
+import {UnstakeRequestsManager} from "@/contracts/L1/core/UnstakeRequestsManager.sol";
 import "../src/contracts/access/proxy/Proxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import  {ITransparentUpgradeableProxy}  from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
