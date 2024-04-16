@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-
-import { IDepositContract } from "../interfaces/IDepositContract.sol";
 import { IDETH } from "../interfaces/IDETH.sol";
 import { IOracleReadRecord, OracleRecord } from "../interfaces/IOracleManager.sol";
 import { StakingManagerStorage } from "./StakingManagerStorage.sol";
@@ -129,7 +127,7 @@ contract StakingManager is L1Base, StakingManagerStorage{
         SafeERC20.safeTransferFrom(getDETH(), msg.sender, getLocator().unStakingRequestsManager(), dethAmount);
     }
     
-    function claimUnstakeRequest(IUnstakeRequestsManagerWrite.requestsInfo[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
+    function claimUnstakeRequest(IUnstakeRequestsManagerWrite.requestsInfo[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyRelayer {
         if (getL1Pauser().isUnstakeRequestsAndClaimsPaused()) {
             revert Paused();
         }
@@ -363,14 +361,6 @@ contract StakingManager is L1Base, StakingManagerStorage{
         emit ProtocolConfigChanged(
             this.setStakingAllowlist.selector, "setStakingAllowlist(bool)", abi.encode(isStakingAllowlist_)
         );
-    }
-
-    function getDETH()internal view returns (IDETH){
-        return IDETH(getLocator().dETH());
-    }
-
-    function getDepositContract()internal view returns (IDepositContract){
-        return IDepositContract(getLocator().depositContract());
     }
 
     // receive() external payable {

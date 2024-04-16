@@ -13,6 +13,7 @@ interface L1ILocator {
     function executionLayerReceiver() external view returns(address);
     function dapplinkBridge() external view returns(address);
     function depositContract() external view returns(address);
+    function relayerAddress() external view returns(address);
     
     
     function coreComponents() external view returns(
@@ -26,6 +27,7 @@ interface L1ILocator {
         address consensusLayerReceiver,
         address executionLayerReceiver,
         address dapplinkBridge,
-        address depositContract
+        address depositContract,
+        address relayerAddress
     );
 }

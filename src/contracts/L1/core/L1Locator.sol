@@ -16,6 +16,7 @@ contract L1Locator {
         address executionLayerReceiver;
         address dapplinkBridge;
         address depositContract;
+        address relayerAddress;
     }
 
     error ZeroAddress();
@@ -31,6 +32,7 @@ contract L1Locator {
     address public executionLayerReceiver;
     address public dapplinkBridge;
     address public depositContract;
+    address public relayerAddress;
     
 
     /**
@@ -50,6 +52,7 @@ contract L1Locator {
         executionLayerReceiver = _assertNonZero(_config.executionLayerReceiver);
         dapplinkBridge = _assertNonZero(_config.dapplinkBridge);
         depositContract = _assertNonZero(_config.depositContract);
+        relayerAddress = _assertNonZero(_config.relayerAddress);
     }
 
     function _assertNonZero(address _address) internal pure returns (address) {

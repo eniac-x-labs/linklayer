@@ -15,32 +15,21 @@ contract L1LocatorDeploy is Script {
         vm.startBroadcast();
         address oldContract = 0xA7d7f12F6F4037a6a80A3261806470bE2C4e08Fc;
 
-        dETH = new DETH();
-
-        Proxy proxyDETH = new Proxy(address(dETH), address(msg.sender), "");
-
         L1Locator.Config memory _config = L1Locator.Config({
-            stakingManager: 0x4e1cec2aEA966714d6A8615dCCf7eee6Ed6668b9,
-            unStakingRequestsManager: 0x545f8a383f02679eb2e417b75A47A63856131F82,
-            dETH: address(proxyDETH),
-            pauser: 0x4AfdDFe2935E7A5DE5b7cAcCB964CE5E1C574771,
-            returnsAggregator: 0x8e4A86cd76d2Fe88eB9dA94Baf865b52077704d4,
-            oracleManager: 0xc63192787D2a34AAC8a2C051667750154a6e1644,
-            oracleQuorumManager: 0xDbBEc9c069F629B0894C3F15eeC73D31eD88C925,
-            consensusLayerReceiver: 0x936A2edca78D8eb0BB20A3e70C83C8F9F5b16A95,
-            executionLayerReceiver: 0xc56A0479352db4b4633533B0A6Cf4f4d9B07b3eF,
+            stakingManager: 0xf72ef31B541154b07541fDFFc1DAb054852ab770,
+            unStakingRequestsManager: 0x9D8cdcBEB831caf1479EBAEdbe0B38350e037af4,
+            dETH: 0x2b6e88e9e59294E0391952fc11e1A2969165F43b,
+            pauser: 0xD6bc9E187AA1fEDAefc57c453C768923DDeE55a0,
+            returnsAggregator: 0x4953BD5A8eB4100A6De128c6767ddbbf38f5eE5d,
+            oracleManager: 0xeF0f8fffA9e82efE2A2bCa54dBe949a948905d5E,
+            oracleQuorumManager: 0x7e80F4A2606C4794699346584F7Ae1A4F413f94A,
+            consensusLayerReceiver: 0x7B4e65e18ab936625F24a7B8211205aE599d6EC7,
+            executionLayerReceiver: 0xb71EA362B5b036b700a50498722ceFC41cdE3599,
             dapplinkBridge: 0x78de729757Ef7C48c76C9EEe35B38Cc7108d59ca,
-            depositContract: 0x4242424242424242424242424242424242424242
+            depositContract: 0x4242424242424242424242424242424242424242,
+            relayerAddress: 0x8061C28b479B846872132F593bC7cbC6b6C9D628
         });
         locator = new L1Locator(_config);
-
-          DETH.Init memory initDeth = DETH.Init({
-            admin: msg.sender,
-            l2ShareAddress: msg.sender
-        });
-        DETH(address(proxyDETH)).initialize(initDeth);
-        DETH(address(proxyDETH)).setLocator(address(locator));
-        // StakingManager(payable(0x4e1cec2aEA966714d6A8615dCCf7eee6Ed6668b9)).setLocator(address(locator));
         
         vm.writeFile("data/L1/locator.addr", vm.toString(address(locator)));
 

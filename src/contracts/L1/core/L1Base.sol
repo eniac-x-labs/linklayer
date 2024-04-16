@@ -9,6 +9,8 @@ import { ProtocolEvents } from "../interfaces/ProtocolEvents.sol";
 import {IL1Pauser} from "../../access/interface/IL1Pauser.sol";
 import { IUnstakeRequestsManager } from "../interfaces/IUnstakeRequestsManager.sol";
 import { IStakingManager } from "../interfaces/IStakingManager.sol";
+import { IDETH } from "../interfaces/IDETH.sol";
+import { IDepositContract } from "../interfaces/IDepositContract.sol";
 
 abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, ReentrancyGuardUpgradeable, ProtocolEvents {
     address public locator;
@@ -41,7 +43,14 @@ abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, R
     function getStakingManager()internal view returns (IStakingManager){
         return IStakingManager(getLocator().stakingManager());
     }
-    
+    function getDETH()internal view returns (IDETH){
+        return IDETH(getLocator().dETH());
+    }
+
+    function getDepositContract()internal view returns (IDepositContract){
+        return IDepositContract(getLocator().depositContract());
+    }
+
     modifier notZeroAddress(address addr) {
         if (addr == address(0)) {
             revert ZeroAddress();
@@ -52,8 +61,8 @@ abstract contract L1Base is Initializable, AccessControlEnumerableUpgradeable, R
     //     return IStrategyManager(getLocator().strategyManager());
     // }
 
-    // modifier onlyRelayer() {
-    //     require(msg.sender == getLocator().relayer(), "StrategyManager.onlyRelayer");
-    //     _;
-    // }
+    modifier onlyRelayer() {
+        require(msg.sender == getLocator().relayerAddress(), "Not Relayer" );
+        _;
+    }
 }

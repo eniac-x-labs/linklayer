@@ -62,12 +62,13 @@ contract ReturnsAggregator is L1Base, IReturnsAggregator {
 
         address payable self = payable(address(this));
         if (elRewards > 0) {
-            SafeCall.callWithMinGas(
+            bool success = SafeCall.callWithMinGas(
                 bridge,
                 gasLimit,
                 elRewards,
                 abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l2Strategy)
             );
+            require(success, "BridgeInitiateETH failed");
         }
         if (clTotal > 0) {
             ReturnsReceiver(payable (getLocator().consensusLayerReceiver())).transfer(self, clTotal);

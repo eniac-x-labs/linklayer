@@ -74,7 +74,8 @@ contract L1Deployer is Script {
             consensusLayerReceiver: address(proxyConsensusLayerReceiver),
             executionLayerReceiver: address(proxyExecutionLayerReceiver),
             dapplinkBridge: dapplinkBridge,
-            depositContract: depositAddress
+            depositContract: depositAddress,
+            relayerAddress: msg.sender
         });
         l1Locator = new L1Locator(_config);
         //====================== initialize ======================

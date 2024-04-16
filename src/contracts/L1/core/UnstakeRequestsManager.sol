@@ -118,6 +118,9 @@ contract UnstakeRequestsManager is
             ethRequested,
             abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, requester, ethRequested)
         );
+        if (!success) {
+            revert BridgeInitiateETHFailed();
+        }
     }
 
     function allocateETH() external payable onlyStakingContract {
@@ -195,9 +198,6 @@ contract UnstakeRequestsManager is
             revert NotStakingManagerContract();
         }
         _;
-    }
-    function getDETH()internal view returns (IDETH){
-        return IDETH(getLocator().dETH());
     }
     // receive() external payable {
     //     revert DoesNotReceiveETH();

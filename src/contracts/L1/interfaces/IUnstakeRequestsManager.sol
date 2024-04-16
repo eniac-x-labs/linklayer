@@ -37,6 +37,7 @@ interface IUnstakeRequestsManager is IUnstakeRequestsManagerRead, IUnstakeReques
     error NotRequester();
     error NotStakingManagerContract();
     error NoRequests();
+    error BridgeInitiateETHFailed();
     event UnstakeRequestCreated(
         address indexed requester,
         address indexed strategy,

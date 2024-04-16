@@ -12,8 +12,8 @@ contract L1StakingManagerUpgrade is Script {
     StakingManager      public stakerManager;
     function run() external {
         vm.startBroadcast();
-        address oldContract = 0xA127E9fd9Af136C8dC03A78e343fBF41164A8e73;
-        address admin = 0xA127E9fd9Af136C8dC03A78e343fBF41164A8e73;
+        address oldContract = 0xf72ef31B541154b07541fDFFc1DAb054852ab770;
+        address admin = 0xF07949210f6120cd1A5F5a7897Ed212d6Ebe8F26;
         stakerManager = new StakingManager();
         ProxyAdmin(admin).upgradeAndCall(ITransparentUpgradeableProxy(oldContract),address(stakerManager),bytes(""));
 

@@ -209,6 +209,7 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, l1StakingManagerAddr)
             );
+            require(success, "StrategyBase.transferETHToL2DappLinkBridge: transfer failed");
 
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
                 l1StakingManagerAddr, ETHAddress.EthAddress, amountBridge,batchId,nextNonce);
@@ -227,6 +228,9 @@ contract StrategyBase is Initializable, IStrategy {
                 amountBridge,
                 abi.encodeWithSignature("BridgeInitiateERC20(uint256,uint256,address,address,uint256)", sourceChainId, destChainId, l1StakingManagerAddr, wethAddress, amountBridge)
             );
+            
+            require(success, "StrategyBase.transferWETHToL2DappLinkBridge: transfer failed");
+
             emit TransferETHToL2DappLinkBridge(sourceChainId, destChainId, bridge,
                 l1StakingManagerAddr, address(stakingWeth), amountBridge,batchId,nextNonce);
             return success;
