@@ -147,6 +147,8 @@ contract StrategyBase is Initializable, IStrategy {
             weth.safeTransfer(recipient, amountToSend);
             virtualWethBalance -= amountToSend;
         }
+        // Reduce shares in stakerStrategyL1BackShares
+        strategyManager.updateStakerStrategyL1BackShares(recipient, IStrategy(address(this)), amountToSend);
     }
 
     function explanation() external pure virtual override returns (string memory) {

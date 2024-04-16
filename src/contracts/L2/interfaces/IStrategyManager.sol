@@ -85,5 +85,9 @@ interface IStrategyManager {
 
     function calculateWithdrawalRoot(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external pure returns (bytes32);
 
-    function  migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares) external returns (bool);
+    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares) external returns (bool);
+
+    function getStakerStrategyL1BackShares(address staker, IStrategy strategy) external returns (uint256);
+
+    function updateStakerStrategyL1BackShares(address staker, IStrategy strategy, uint256 shares) external;
 }

@@ -446,21 +446,24 @@ contract DelegationManager is Initializable, OwnableUpgradeable, DelegationManag
         require(staker != address(0), "DelegationManager._removeSharesAndQueueWithdrawal: staker cannot be zero address");
         require(strategies.length != 0, "DelegationManager._removeSharesAndQueueWithdrawal: strategies cannot be empty");
         for (uint256 i = 0; i < strategies.length;) {
-            if (operator != address(0)) {
-                _decreaseOperatorShares({
-                    operator: operator,
-                    staker: staker,
-                    strategy: strategies[i],
-                    shares: shares[i]
-                });
-            }
-            require(
-                staker == withdrawer || !strategyManager.thirdPartyTransfersForbidden(strategies[i]),
-                "DelegationManager._removeSharesAndQueueWithdrawal: withdrawer must be same address as staker if thirdPartyTransfersForbidden are set"
-            );
-            strategyManager.removeShares(staker, strategies[i], shares[i]);
+             uint256 l1BackShares = strategyManager.getStakerStrategyL1BackShares(staker, strategies[i]);
+             if (l1BackShares >= shares[i]) {
+                 if (operator != address(0)) {
+                    _decreaseOperatorShares({
+                        operator: operator,
+                        staker: staker,
+                        strategy: strategies[i],
+                        shares: shares[i]
+                    });
+                }
+                require(
+                    staker == withdrawer || !strategyManager.thirdPartyTransfersForbidden(strategies[i]),
+                    "DelegationManager._removeSharesAndQueueWithdrawal: withdrawer must be same address as staker if thirdPartyTransfersForbidden are set"
+                );
+                strategyManager.removeShares(staker, strategies[i], shares[i]);
 
-            unchecked { ++i; }
+                unchecked { ++i; }
+             }
         }
 
         uint256 nonce = cumulativeWithdrawalsQueued[staker];
