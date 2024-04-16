@@ -17,7 +17,7 @@ interface IStrategyManager {
 
     event StrategyRemovedFromDepositWhitelist(IStrategy strategy);
 
-    event MigrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares);
+    event MigrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares, uint256 l1UnStakeMessageNonce);
 
     function depositWETHIntoStrategy(IStrategy strategy, IERC20 weth, uint256 amount) external returns (uint256 shares);
 
@@ -85,7 +85,7 @@ interface IStrategyManager {
 
     function calculateWithdrawalRoot(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external pure returns (bytes32);
 
-    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares) external returns (bool);
+    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares, uint256 l1UnStakeMessageNonce) external returns (bool);
 
     function getStakerStrategyL1BackShares(address staker, IStrategy strategy) external returns (uint256);
 

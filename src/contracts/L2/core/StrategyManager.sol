@@ -395,9 +395,9 @@ contract StrategyManager is
         );
     }
 
-    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares) external onlyRelayer returns (bool) {
+    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares, uint256 l1UnStakeMessageNonce) external onlyRelayer returns (bool) {
         stakerStrategyL1BackShares[staker][strategy] += shares;
-        emit MigrateRelatedL1StakerShares (staker, strategy, shares);
+        emit MigrateRelatedL1StakerShares(staker, strategy, shares, l1UnStakeMessageNonce);
         return true;
     }
 
