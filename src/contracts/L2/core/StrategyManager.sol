@@ -400,4 +400,12 @@ contract StrategyManager is
         emit MigrateRelatedL1StakerShares (staker, strategy, shares);
         return true;
     }
+
+    function getStakerStrategyL1BackShares(address staker, IStrategy strategy) external returns (uint256) {
+        return stakerStrategyL1BackShares[staker][strategy];
+    }
+
+    function updateStakerStrategyL1BackShares(address staker, IStrategy strategy, uint256 shares) external onlyStrategiesWhitelistedForDeposit(strategy) {
+        stakerStrategyL1BackShares[staker][strategy] -= shares;
+    }
 }
