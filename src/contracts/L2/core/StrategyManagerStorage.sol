@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
 import "../interfaces/IStrategyManager.sol";
-import "../interfaces/IStrategy.sol";
 import "../interfaces/IDelegationManager.sol";
 import "../interfaces/ISlashManager.sol";
 
@@ -23,22 +22,22 @@ abstract contract StrategyManagerStorage is IStrategyManager {
 
     uint256 internal withdrawalDelayBlocks;
 
-    mapping(address => mapping(IStrategy => uint256)) public stakerStrategyShares;
+    mapping(address => mapping(address => uint256)) public stakerStrategyShares;
 
-    mapping(address => mapping(IStrategy => uint256)) public stakerStrategyL1BackShares;
+    mapping(address => mapping(address => uint256)) public stakerStrategyL1BackShares;
 
-    mapping(address => IStrategy[]) public stakerStrategyList;
+    mapping(address => address[]) public stakerStrategyList;
 
     mapping(bytes32 => bool) public withdrawalRootPending;
 
     mapping(address => uint256) internal numWithdrawalsQueued;
 
-    mapping(IStrategy => bool) public strategyIsWhitelistedForDeposit;
+    mapping(address => bool) public strategyIsWhitelistedForDeposit;
 
     mapping(address => uint256) internal beaconChainETHSharesToDecrementOnWithdrawal;
 
 
-    mapping(IStrategy => bool) public thirdPartyTransfersForbidden;
+    mapping(address => bool) public thirdPartyTransfersForbidden;
 
 
     uint256[39] private __gap;

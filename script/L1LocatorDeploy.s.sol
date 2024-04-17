@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import  {ITransparentUpgradeableProxy}  from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Script.sol";
 
+// forge script ./script/L1LocatorDeploy.s.sol:L1LocatorDeploy --private-key xxx 0b59bddf091da85ebee2d547b8e8c2d2a92fa23982bc54fe13d6e439b5f4e8  --rpc-url https://rpc.holesky.ethpandaops.io  --broadcast -vvvv --legacy --gas-price 1000000000 
 contract L1LocatorDeploy is Script {
     L1Locator      public locator;
     DETH                   public dETH;

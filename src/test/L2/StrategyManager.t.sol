@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 import "@/contracts/L2/core/DelegationManager.sol";
-import "@/contracts/L2/core/L1RewardManager.sol";
-import "@/contracts/L2/core/L2RewardManager.sol";
+// import "@/contracts/L2/core/L1RewardManager.sol";
+import {L2RewardManager}  from "@/contracts/L2/core/L2RewardManager.sol";
 import "@/contracts/L2/core/StrategyManager.sol";
 import "@/contracts/L2/strategies/StrategyBase.sol";
 
@@ -22,11 +22,11 @@ import "@/test/DappLinkToken.sol";
 import "forge-std/Script.sol";
 import "forge-std/Test.sol";
 
-import {DappLinkDeployer} from "./DappLinkDeployer.t.sol";
+import {L2Test} from "./L2Test.t.sol";
 
 
-contract StrategyManagerTest is DappLinkDeployer {
+contract StrategyManagerTest is L2Test {
     function testDeposit() public {
-        StrategyManager(address(proxyStrategyManager)).depositETHIntoStrategy{value: 0.1 ether}(StrategyBase(address(proxySocialStrategy)));
+        StrategyManager(address(proxyStrategyManager)).depositETHIntoStrategy{value: 0.1 ether}(address(proxySocialStrategy));
     }
 }

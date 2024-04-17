@@ -1,21 +1,16 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
-import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./StrategyManagerStorage.sol";
 import "../../libraries/EIP1271SignatureUtils.sol";
 import "../../libraries/ETHAddress.sol";
 import { IL2Pauser } from "../../access/interface/IL2Pauser.sol";
-
+import {L2Base} from "@/contracts/l2/core/L2Base.sol";
 
 
 contract StrategyManager is
-    Initializable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable,
+    L2Base,
     StrategyManagerStorage
 {
     using SafeERC20 for IERC20;
@@ -23,41 +18,6 @@ contract StrategyManager is
     uint8 internal constant PAUSED_DEPOSITS = 0;
 
     uint256 internal immutable ORIGINAL_CHAIN_ID;
-
-    IDelegationManager public delegation;
-
-    ISlashManager public slasher;
-
-    IL2Pauser public pauser;
-
-    address public relayer;
-
-    modifier onlyStrategyWhitelister() {
-        require(
-            msg.sender == strategyWhitelister,
-            "StrategyManager.onlyStrategyWhitelister: not the strategyWhitelister"
-        );
-        _;
-    }
-
-    modifier onlyStrategiesWhitelistedForDeposit(IStrategy strategy) {
-        require(
-            strategyIsWhitelistedForDeposit[strategy],
-            "StrategyManager.onlyStrategiesWhitelistedForDeposit: strategy not whitelisted"
-        );
-        _;
-    }
-
-    modifier onlyDelegationManager() {
-        require(msg.sender == address(delegation), "StrategyManager.onlyDelegationManager: not the DelegationManager");
-        _;
-    }
-
-    modifier onlyRelayer() {
-        require(msg.sender == relayer, "StrategyManager.onlyRelayer");
-        _;
-    }
-
 
     constructor()  {
         _disableInitializers();
@@ -67,50 +27,42 @@ contract StrategyManager is
     // EXTERNAL FUNCTIONS
     function initialize(
         address initialOwner,
-        address initialStrategyWhitelister,
-        address _relayer,
-        IDelegationManager _delegation,
-        ISlashManager _slasher,
-        IL2Pauser _pauser
+        address initialStrategyWhitelister
     ) external initializer {
         _DOMAIN_SEPARATOR = _calculateDomainSeparator();
-        _transferOwnership(initialOwner);
         _setStrategyWhitelister(initialStrategyWhitelister);
-        delegation = _delegation;
-        slasher = _slasher;
-        pauser = _pauser;
-        relayer = _relayer;
+        __L2Base_init(initialOwner);
     }
 
     function depositWETHIntoStrategy(
-        IStrategy strategy,
+        address strategy,
         IERC20 weth,
         uint256 amount
     ) external nonReentrant returns (uint256 shares) {
-        require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositWETHIntoStrategy paused");
+        require(getL2Pauser().isStrategyDeposit(), "StrategyManager.t.sol:depositWETHIntoStrategy paused");
 
         shares = _depositWETHIntoStrategy(msg.sender, strategy, weth, amount);
     }
 
     function depositETHIntoStrategy(
-        IStrategy strategy
+        address strategy
     ) external payable nonReentrant returns (uint256 shares) {
 
-        require(pauser.isStrategyDeposit(), "StrategyManager.t.sol:depositETHIntoStrategy paused");
+        require(getL2Pauser().isStrategyDeposit(), "StrategyManager.t.sol:depositETHIntoStrategy paused");
 
         shares = _depositETHIntoStrategy(msg.sender, strategy);
 
     }
 
     function depositWETHIntoStrategyWithSignature(
-        IStrategy strategy,
+        address strategy,
         IERC20 weth,
         uint256 amount,
         address staker,
         uint256 expiry,
         bytes memory signature
     ) external nonReentrant returns (uint256 shares) {
-        require(pauser.isStrategyDeposit(), "StrategyManager:depositWETHIntoStrategyWithSignature paused");
+        require(getL2Pauser().isStrategyDeposit(), "StrategyManager:depositWETHIntoStrategyWithSignature paused");
         require(
             !thirdPartyTransfersForbidden[strategy],
             "StrategyManager.depositIntoStrategyWithSignature: third transfers disabled"
@@ -130,13 +82,13 @@ contract StrategyManager is
     }
 
     function depositETHIntoStrategyWithSignature(
-        IStrategy strategy,
+        address strategy,
         uint256 amount,
         address staker,
         uint256 expiry,
         bytes memory signature
     ) external nonReentrant returns (uint256 shares) {
-        require(pauser.isStrategyDeposit(), "StrategyManager:depositETHIntoStrategyWithSignature paused");
+        require(getL2Pauser().isStrategyDeposit(), "StrategyManager:depositETHIntoStrategyWithSignature paused");
         require(
             !thirdPartyTransfersForbidden[strategy],
             "StrategyManager.depositIntoStrategyWithSignature: third transfers disabled"
@@ -157,7 +109,7 @@ contract StrategyManager is
 
     function removeShares(
         address staker,
-        IStrategy strategy,
+        address strategy,
         uint256 shares
     ) external onlyDelegationManager {
         _removeShares(staker, strategy, shares);
@@ -166,7 +118,7 @@ contract StrategyManager is
     function addShares(
         address staker,
         IERC20 weth,
-        IStrategy strategy,
+        address strategy,
         uint256 shares
     ) external onlyDelegationManager {
         _addShares(staker, weth, strategy, shares);
@@ -174,7 +126,7 @@ contract StrategyManager is
 
     function withdrawSharesAsWeth(
         address recipient,
-        IStrategy strategy,
+        address strategy,
         uint256 shares,
         IERC20 weth
     ) external onlyDelegationManager {
@@ -183,7 +135,7 @@ contract StrategyManager is
             l1BackShares >= shares,
             "StrategyManager.withdrawSharesAsWeth: The Layer1 of DETH hasn't been completely released yet"
         );
-        strategy.withdraw(recipient, weth, shares);
+        getStrategy(strategy).withdraw(recipient, weth, shares);
     }
 
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external onlyDelegationManager returns(bool, bytes32) {
@@ -197,7 +149,7 @@ contract StrategyManager is
     }
 
     function setThirdPartyTransfersForbidden(
-        IStrategy strategy,
+        address strategy,
         bool value
     ) external onlyStrategyWhitelister {
         _setThirdPartyTransfersForbidden(strategy, value);
@@ -208,7 +160,7 @@ contract StrategyManager is
     }
 
     function addStrategiesToDepositWhitelist(
-        IStrategy[] calldata strategiesToWhitelist,
+        address[] calldata strategiesToWhitelist,
         bool[] calldata thirdPartyTransfersForbiddenValues
     ) external onlyStrategyWhitelister {
         require(
@@ -229,7 +181,7 @@ contract StrategyManager is
     }
 
     function removeStrategiesFromDepositWhitelist(
-        IStrategy[] calldata strategiesToRemoveFromWhitelist
+        address[] calldata strategiesToRemoveFromWhitelist
     ) external onlyStrategyWhitelister {
         uint256 strategiesToRemoveFromWhitelistLength = strategiesToRemoveFromWhitelist.length;
         for (uint256 i = 0; i < strategiesToRemoveFromWhitelistLength; ) {
@@ -245,7 +197,7 @@ contract StrategyManager is
     }
 
     // INTERNAL FUNCTIONS
-    function _addShares(address staker, IERC20 weth, IStrategy strategy, uint256 shares) internal {
+    function _addShares(address staker, IERC20 weth, address strategy, uint256 shares) internal {
         require(staker != address(0), "StrategyManager._addShares: staker cannot be zero address");
         require(shares != 0, "StrategyManager._addShares: shares should not be zero!");
 
@@ -264,42 +216,42 @@ contract StrategyManager is
 
     function _depositWETHIntoStrategy(
         address staker,
-        IStrategy strategy,
+        address strategy,
         IERC20 weth,
         uint256 amount
     ) internal onlyStrategiesWhitelistedForDeposit(strategy) returns (uint256 shares) {
-        weth.safeTransferFrom(msg.sender, address(strategy), amount);
+        weth.safeTransferFrom(msg.sender, strategy, amount);
 
-        shares = strategy.deposit(weth, amount);
+        shares = getStrategy(strategy).deposit(weth, amount);
 
         _addShares(staker, weth, strategy, shares);
 
-        delegation.increaseDelegatedShares(staker, strategy, shares);
+        getDelegationManager().increaseDelegatedShares(staker, strategy, shares);
 
         return shares;
     }
 
     function _depositETHIntoStrategy(
         address staker,
-        IStrategy strategy
+        address strategy
     ) internal onlyStrategiesWhitelistedForDeposit(strategy) returns (uint256 shares) {
 
-        (bool sent, ) = payable(address(strategy)).call{value: msg.value}("");
+        (bool sent, ) = payable(strategy).call{value: msg.value}("");
 
         require(sent, "StrategyManager._depositETHIntoStrategy: send eth to strategy fail");
 
-        shares = strategy.deposit(IERC20(ETHAddress.EthAddress), msg.value);
+        shares = getStrategy(strategy).deposit(IERC20(ETHAddress.EthAddress), msg.value);
 
         _addShares(staker, IERC20(ETHAddress.EthAddress), strategy, shares);
 
-        delegation.increaseDelegatedShares(staker, strategy, shares);
+        getDelegationManager().increaseDelegatedShares(staker, strategy, shares);
 
         return shares;
     }
 
     function _removeShares(
         address staker,
-        IStrategy strategy,
+        address strategy,
         uint256 shareAmount
     ) internal returns (bool) {
         require(shareAmount != 0, "StrategyManager._removeShares: shareAmount should not be zero!");
@@ -323,7 +275,7 @@ contract StrategyManager is
 
     function _removeStrategyFromStakerStrategyList(
         address staker,
-        IStrategy strategy
+        address strategy
     ) internal {
         uint256 stratsLength = stakerStrategyList[staker].length;
         uint256 j = 0;
@@ -340,7 +292,7 @@ contract StrategyManager is
         stakerStrategyList[staker].pop();
     }
 
-    function _setThirdPartyTransfersForbidden(IStrategy strategy, bool value) internal {
+    function _setThirdPartyTransfersForbidden(address strategy, bool value) internal {
         emit UpdatedThirdPartyTransfersForbidden(strategy, value);
         thirdPartyTransfersForbidden[strategy] = value;
     }
@@ -351,7 +303,7 @@ contract StrategyManager is
     }
 
     // VIEW FUNCTIONS
-    function getDeposits(address staker) external view returns (IStrategy[] memory, uint256[] memory) {
+    function getDeposits(address staker) external view returns (address[] memory, uint256[] memory) {
         uint256 strategiesLength = stakerStrategyList[staker].length;
         uint256[] memory shares = new uint256[](strategiesLength);
 
@@ -395,17 +347,37 @@ contract StrategyManager is
         );
     }
 
-    function migrateRelatedL1StakerShares(address staker, IStrategy strategy, uint256 shares, uint256 l1UnStakeMessageNonce) external onlyRelayer returns (bool) {
+    function migrateRelatedL1StakerShares(address staker, address strategy, uint256 shares, uint256 l1UnStakeMessageNonce) external onlyRelayer returns (bool) {
         stakerStrategyL1BackShares[staker][strategy] += shares;
         emit MigrateRelatedL1StakerShares(staker, strategy, shares, l1UnStakeMessageNonce);
         return true;
     }
+	
 
-    function getStakerStrategyL1BackShares(address staker, IStrategy strategy) external returns (uint256) {
+    function getStakerStrategyL1BackShares(address staker, address strategy) external view returns (uint256) {
         return stakerStrategyL1BackShares[staker][strategy];
     }
 
-    function updateStakerStrategyL1BackShares(address staker, IStrategy strategy, uint256 shares) external onlyStrategiesWhitelistedForDeposit(strategy) {
+    function updateStakerStrategyL1BackShares(address staker, address strategy, uint256 shares) external onlyStrategiesWhitelistedForDeposit(strategy) {
         stakerStrategyL1BackShares[staker][strategy] -= shares;
     }
+
+
+    
+    modifier onlyStrategyWhitelister() {
+        require(
+            msg.sender == strategyWhitelister,
+            "StrategyManager.onlyStrategyWhitelister: not the strategyWhitelister"
+        );
+        _;
+    }
+
+    modifier onlyStrategiesWhitelistedForDeposit(address strategy) {
+        require(
+            strategyIsWhitelistedForDeposit[strategy],
+            "StrategyManager.onlyStrategiesWhitelistedForDeposit: strategy not whitelisted"
+        );
+        _;
+    }
+
 }

@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
 import "../interfaces/IStrategyManager.sol";
 import "../interfaces/IDelegationManager.sol";
@@ -20,9 +20,9 @@ abstract contract DelegationManagerStorage is IDelegationManager {
 
     uint256 public constant MAX_WITHDRAWAL_DELAY_BLOCKS = 216000;
 
-    mapping(address => mapping(IStrategy => uint256)) public operatorShares;
+    mapping(address => mapping(address => uint256)) public operatorShares;
 
-    mapping(address => mapping(IStrategy => mapping(address => uint256))) public stakerStrategyOperatorShares;
+    mapping(address => mapping(address => mapping(address => uint256))) public stakerStrategyOperatorShares;
 
     mapping(address => OperatorDetails) internal _operatorDetails;
 
@@ -40,7 +40,7 @@ abstract contract DelegationManagerStorage is IDelegationManager {
 
     address private __deprecated_stakeRegistry;
 
-    mapping(IStrategy => uint256) public strategyWithdrawalDelayBlocks;
+    mapping(address => uint256) public strategyWithdrawalDelayBlocks;
 
     uint256[39] private __gap;
 }

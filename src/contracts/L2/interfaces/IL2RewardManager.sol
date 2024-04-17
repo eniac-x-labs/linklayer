@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
-
-import "../interfaces/IStrategy.sol";
+pragma solidity ^0.8.24;
 
 interface IL2RewardManager {
      event DepositDappLinkToken(
@@ -10,7 +8,7 @@ interface IL2RewardManager {
      );
 
     event OperatorStakerReward(
-        IStrategy strategy,
+        address strategy,
         address operator,
         uint256 stakerFee,
         uint256 operatorFee
@@ -26,9 +24,9 @@ interface IL2RewardManager {
         uint256 amount
     );
 
-    function calculateFee(IStrategy strategy, address operator, uint256 baseFee) external;
+    function calculateFee(address strategy, address operator, uint256 baseFee) external;
     function depositDappLinkToken(uint256 amount) external returns (bool);
     function operatorClaimReward() external returns (bool);
-    function stakerClaimReward(IStrategy strategy) external returns (bool);
+    function stakerClaimReward(address strategy) external returns (bool);
     function updateOperatorAndStakerShareFee(uint256 _stakerPercent) external;
 }

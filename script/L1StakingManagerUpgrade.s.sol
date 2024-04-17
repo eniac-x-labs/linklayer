@@ -7,18 +7,16 @@ import  {ITransparentUpgradeableProxy}  from "@openzeppelin/contracts/proxy/tran
 import "forge-std/Script.sol";
 
 
-// forge script ./script/L1StakingManagerUpgrade.s.sol:L1StakingManagerUpgrade --rpc-url https://rpc.holesky.ethpandaops.io 
+// forge script ./script/L1StakingManagerUpgrade.s.sol:L1StakingManagerUpgrade --private-key 0f0b59bddf091da85ebee2d547b8e8c2d2a92fa23982bc54fe13d6e439b5f4e8  --rpc-url https://rpc.holesky.ethpandaops.io  --broadcast -vvvv --legacy --gas-price 1000000000 
 contract L1StakingManagerUpgrade is Script {
     StakingManager      public stakerManager;
     function run() external {
         vm.startBroadcast();
-        address oldContract = 0xf72ef31B541154b07541fDFFc1DAb054852ab770;
-        address admin = 0xF07949210f6120cd1A5F5a7897Ed212d6Ebe8F26;
+        address oldContract = 0xB5e392eaB0971D4C98a4a8038f42314f5b6a4c29;
+        address admin = 0x3330aA6443fCf3de3Ed6fCC725243De81c7374ec;
         stakerManager = new StakingManager();
         ProxyAdmin(admin).upgradeAndCall(ITransparentUpgradeableProxy(oldContract),address(stakerManager),bytes(""));
-
-        // Proxy(payable(oldContract)).withdraw();
-        
+        // console.log("address(stakerManager)-------",address(stakerManager));
         vm.stopBroadcast();
     }
 

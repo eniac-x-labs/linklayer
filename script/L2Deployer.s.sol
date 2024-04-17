@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "@/contracts/L2/core/DelegationManager.sol";
-import "@/contracts/L2/core/L1RewardManager.sol";
-import "@/contracts/L2/core/L2RewardManager.sol";
+import {L1RewardManager} from "@/contracts/L2/core/L1RewardManager.sol";
+import {L2RewardManager} from "@/contracts/L2/core/L2RewardManager.sol";
 import "@/contracts/L2/core/StrategyManager.sol";
 import "@/contracts/L2/strategies/StrategyBase.sol";
 
@@ -18,7 +18,7 @@ import "../src/contracts/access/proxy/Proxy.sol";
 
 
 import "@/test/DappLinkToken.sol";
-
+import {L2Locator} from "@/contracts/L2/core/L2Locator.sol";
 
 import "forge-std/Script.sol";
 
@@ -37,6 +37,7 @@ contract L2Deployer is Script {
     SlashManager      public slashManager;
     L2Pauser          public dappLinkPauser;
     DappLinkToken     public dappLinkToken;
+    L2Locator         public locator;
 
     function run() external {
         vm.startBroadcast();
@@ -69,6 +70,19 @@ contract L2Deployer is Script {
         Proxy proxyDappLinkToken = new Proxy(address(dappLinkToken), address(admin), "");
 
 
+        L2Locator.Config memory _config = L2Locator.Config({
+            delegation: address(proxyDelegationManager),
+            strategyManager: address(proxyStrategyManager),
+            dapplinkToken: address(proxyDappLinkToken),
+            pauser: address(proxyDappLinkPauser),
+            slasher: address(proxySlashManager),
+            relayer: relayer,
+            l1RewardManager: address(proxyL1RewardManager),
+            l2RewardManager: address(proxyL2RewardManager)
+        });
+
+        locator = new L2Locator(_config);
+
         //====================== initialize ======================
         DappLinkToken(address(proxyDappLinkToken)).initialize(address(admin));
 
@@ -83,29 +97,34 @@ contract L2Deployer is Script {
         }
 
         {
-            IStrategy[] memory _strategies = new IStrategy[](3);
-            _strategies[0] = IStrategy(address(proxySocialStrategy));
-            _strategies[1] = IStrategy(address(proxyGamingStrategy));
-            _strategies[2] = IStrategy(address(proxyDaStrategy));
+            address[] memory _strategies = new address[](3);
+            _strategies[0] = address(proxySocialStrategy);
+            _strategies[1] = address(proxyGamingStrategy);
+            _strategies[2] = address(proxyDaStrategy);
              uint256[] memory _withdrawalDelayBlocks = new uint256[](3);
              _withdrawalDelayBlocks[0]= 10;
              _withdrawalDelayBlocks[1]= 10;
              _withdrawalDelayBlocks[2]= 10;
              uint256 _minWithdrawalDelayBlocks = 5;
-             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks, IStrategyManager(address(proxyStrategyManager)), ISlashManager(address(proxySlashManager)), L2Pauser(address(proxyDappLinkPauser)));
+             DelegationManager(address(proxyDelegationManager)).initialize(address(admin), _minWithdrawalDelayBlocks, _strategies, _withdrawalDelayBlocks);
+             DelegationManager(address(proxyDelegationManager)).setLocator(address(locator));
         }
 
         SlashManager(address(proxySlashManager)).initialize(address(admin));
+        SlashManager(address(proxySlashManager)).setLocator(address(locator));
 
         L1RewardManager(address(proxyL1RewardManager)).initialize(address(admin));
+        L1RewardManager(address(proxyL1RewardManager)).setLocator(address(locator));
 
         {
-            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin), IDelegationManager(address(proxyDelegationManager)), IStrategyManager(address(proxyStrategyManager)), DappLinkToken(address(proxyDappLinkToken)));
+            L2RewardManager(address(proxyL2RewardManager)).initialize(address(admin));
+            L2RewardManager(address(proxyL2RewardManager)).setLocator(address(locator));
         }
 
         {
             address initialStrategyWhitelister = msg.sender;
-            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister, relayer, IDelegationManager(address(proxyDelegationManager)), ISlashManager(address(proxySlashManager)), L2Pauser(address(proxyDappLinkPauser)));
+            StrategyManager(address(proxyStrategyManager)).initialize(address(admin), initialStrategyWhitelister);
+            StrategyManager(address(proxyStrategyManager)).setLocator(address(locator));
         }
 
         {

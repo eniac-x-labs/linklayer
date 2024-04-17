@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";

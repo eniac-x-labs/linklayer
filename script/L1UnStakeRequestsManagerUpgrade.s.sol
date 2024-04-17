@@ -7,13 +7,13 @@ import  {ITransparentUpgradeableProxy}  from "@openzeppelin/contracts/proxy/tran
 import "forge-std/Script.sol";
 
 
-// forge script ./script/L1UnStakeRequestsManagerUpgrade.s.sol:L1UnStakeRequestsManagerUpgrade --rpc-url https://rpc.holesky.ethpandaops.io 
+// forge script ./script/L1UnStakeRequestsManagerUpgrade.s.sol:L1UnStakeRequestsManagerUpgrade --private-key xxx  --rpc-url https://rpc.holesky.ethpandaops.io  --broadcast -vvvv --legacy --gas-price 1000000000 
 contract L1UnStakeRequestsManagerUpgrade is Script {
     UnstakeRequestsManager      public unStakeRequestsManager;
     function run() external {
         vm.startBroadcast();
-        address oldContract = 0x9D8cdcBEB831caf1479EBAEdbe0B38350e037af4;
-        address admin = 0x391D07433222b64F0e39FDB279e695Da7c91E79A;
+        address oldContract = 0x435D5C096C423045Fcef329dE32B8CeBc2619205;
+        address admin = 0x58B473DAe6202060a2C33395F321d5025799A39D;
         unStakeRequestsManager = new UnstakeRequestsManager();
         ProxyAdmin(admin).upgradeAndCall(ITransparentUpgradeableProxy(oldContract),address(unStakeRequestsManager),bytes(""));
 

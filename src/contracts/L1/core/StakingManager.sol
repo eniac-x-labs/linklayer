@@ -363,9 +363,10 @@ contract StakingManager is L1Base, StakingManagerStorage{
         );
     }
 
-    // receive() external payable {
-    //     revert DoesNotReceiveETH();
-    // }
+    receive() external payable {
+        unallocatedETH += msg.value;
+        // revert DoesNotReceiveETH();
+    }
 
     // fallback() external payable {
     //     revert DoesNotReceiveETH();

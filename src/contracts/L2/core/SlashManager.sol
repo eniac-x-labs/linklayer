@@ -1,17 +1,15 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
-import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-
+import {L2Base} from "@/contracts/l2/core/L2Base.sol";
 import "../interfaces/ISlashManager.sol";
-import "../interfaces/IDelegationManager.sol";
-import "../interfaces/IStrategyManager.sol";
+// import "../interfaces/IDelegationManager.sol";
+// import "../interfaces/IStrategyManager.sol";
 
 
-contract SlashManager is Initializable, OwnableUpgradeable, ISlashManager {
-    IStrategyManager public immutable strategyManager;
-    ISlashManager public immutable slasher;
+contract SlashManager is L2Base, ISlashManager {
+    // IStrategyManager public immutable strategyManager;
+    // ISlashManager public immutable slasher;
 
     constructor() {
          _disableInitializers();

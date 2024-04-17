@@ -1,28 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import "@openzeppelin-upgrades/contracts/utils/ReentrancyGuardUpgradeable.sol";
+import {L2RewardManagerStorage} from "@/contracts/l2/core/L2RewardManagerStorage.sol";
+import {L2Base} from "@/contracts/l2/core/L2Base.sol";
 
-import "../interfaces/IStrategyManager.sol";
-import "../interfaces/IStrategy.sol";
-import "../interfaces/IL2RewardManager.sol";
-
-import "./L2RewardManagerStorage.sol";
-
-
-contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable, L2RewardManagerStorage, ReentrancyGuardUpgradeable {
+contract L2RewardManager is L2Base, L2RewardManagerStorage {
     using SafeERC20 for IERC20;
-
-    IERC20 public rewardToken;
-
-    IDelegationManager public delegation;
-
-    IStrategyManager public strategyManager;
-
     uint256 public stakerPercent = 92;
 
     constructor(){
@@ -30,20 +16,14 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
     }
 
     function initialize(
-        address initialOwner,
-        IDelegationManager _delegation,
-        IStrategyManager _strategyManager,
-        IERC20 _rewardToken
+        address initialOwner
     ) external initializer {
-        _transferOwnership(initialOwner);
-        delegation = _delegation;
-        strategyManager = _strategyManager;
-        rewardToken = _rewardToken;
+        __L2Base_init(initialOwner);
     }
 
-    function calculateFee(IStrategy strategy, address operator, uint256 baseFee) external {
-        uint256 totalShares = strategy.totalShares();
-        uint256 operatorShares = delegation.operatorShares(operator, strategy);
+    function calculateFee(address strategy, address operator, uint256 baseFee) external {
+        uint256 totalShares = getStrategy(strategy).totalShares();
+        uint256 operatorShares = getDelegationManager().operatorShares(operator, strategy);
         uint256 operatorTotalFee = baseFee / (operatorShares / totalShares);
 
         uint256 stakerFee = operatorTotalFee * (stakerPercent / 100);
@@ -61,14 +41,14 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
     }
 
     function depositDappLinkToken(uint256 amount) external returns (bool){
-        rewardToken.safeTransferFrom(msg.sender, address(this), amount);
+        getDapplinkToken().safeTransferFrom(msg.sender, address(this), amount);
         emit DepositDappLinkToken(msg.sender, amount);
         return true;
     }
 
     function operatorClaimReward() external returns (bool){
         uint256 claimAmount = operatorRewards[msg.sender];
-        rewardToken.safeTransferFrom(address(this), msg.sender, claimAmount);
+        getDapplinkToken().safeTransferFrom(address(this), msg.sender, claimAmount);
         emit OperatorClaimReward(
             msg.sender,
             claimAmount
@@ -76,9 +56,9 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
         return true;
     }
 
-    function stakerClaimReward(IStrategy strategy) external returns (bool){
+    function stakerClaimReward(address strategy) external returns (bool){
        uint256 stakerAmount = stakerRewardsAmount(strategy);
-        rewardToken.safeTransferFrom(address(this), msg.sender, stakerAmount);
+        getDapplinkToken().safeTransferFrom(address(this), msg.sender, stakerAmount);
         emit StakerClaimReward(
             msg.sender,
             stakerAmount
@@ -86,9 +66,9 @@ contract L2RewardManager is IL2RewardManager, Initializable, OwnableUpgradeable,
         return true;
     }
 
-    function stakerRewardsAmount(IStrategy strategy) public returns (uint256){
-        uint256 stakerShare = strategyManager.stakerStrategyShares(msg.sender, strategy);
-        uint256 strategyShares = strategy.totalShares();
+    function stakerRewardsAmount(address strategy) public view returns (uint256){
+        uint256 stakerShare = getStrategyManager().stakerStrategyShares(msg.sender, strategy);
+        uint256 strategyShares = getStrategy(strategy).totalShares();
         if (stakerShare == 0 ||strategyShares == 0) {
             return 0;
         }

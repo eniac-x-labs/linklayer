@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 
-import "@/contracts/L2/core/L2Base.sol";
+import {L2Base} from "@/contracts/L2/core/L2Base.sol";
 import "../interfaces/IStrategyManager.sol";
 import "../interfaces/IL1RewardManager.sol";
 
@@ -24,11 +24,7 @@ contract L1RewardManager is IL1RewardManager, L2Base{
         address staker;
         uint256 share;
     }
-    mapping(address => mapping(IStrategy => mapping (address => uint256) )) public stakerStrategyOperatorReward;
-
-    IStrategyManager public strategyManager;
-
-    IDelegationManager public delegation;
+    mapping(address => mapping(address => mapping (address => uint256) )) public stakerStrategyOperatorReward;
 
     constructor(){
         _disableInitializers();
@@ -47,7 +43,7 @@ contract L1RewardManager is IL1RewardManager, L2Base{
         return true;
     }
 
-    function claimL1Reward(IStrategy[] calldata _strategies) external payable returns (bool) {
+    function claimL1Reward(address[] calldata _strategies) external payable returns (bool) {
         uint256 amountToSend = stakerRewardsAmount(_strategies);
         payable(msg.sender).transfer(amountToSend);
         emit ClaimL1Reward(msg.sender, amountToSend);
@@ -57,14 +53,14 @@ contract L1RewardManager is IL1RewardManager, L2Base{
     // function allocateL1Reward(AllocateObj calldata _allocateObj)external onlyRelayer{
     //     uint256 totalShares = 0;
     //     for (uint256 i = 0; i < _allocateObj.strategies.length; i++) {
-    //         IStrategy _strategy = _getStrategy(_allocateObj.strategies[i].strategy);
+    //         IStrategy _strategy = getStrategy(_allocateObj.strategies[i].strategy);
 
     //         totalShares += _strategies[i].totalShares();
     //         // userShares += _strategies[i].shares(msg.sender);
     //     }
 
     //     for (uint256 i = 0; i < _allocateObj.strategies.length; i++) {
-    //         IStrategy _strategy = _getStrategy(_allocateObj.strategies[i]);
+    //         IStrategy _strategy = getStrategy(_allocateObj.strategies[i]);
 
     //         totalShares += _strategies[i].totalShares();
     //         // userShares += _strategies[i].shares(msg.sender);
@@ -72,12 +68,12 @@ contract L1RewardManager is IL1RewardManager, L2Base{
     // }
 
 
-    function stakerRewardsAmount(IStrategy[] calldata _strategies) public returns (uint256) {
+    function stakerRewardsAmount(address[] calldata _strategies) public view returns (uint256) {
         uint256 totalShares = 0;
         uint256 userShares = 0;
         for (uint256 i = 0; i < _strategies.length; i++) {
-            totalShares += _strategies[i].totalShares();
-            userShares += _strategies[i].shares(msg.sender);
+            totalShares += getStrategy(_strategies[i]).totalShares();
+            userShares += getStrategy(_strategies[i]).shares(msg.sender);
         }
         if (totalShares == 0 || userShares == 0) {
             return 0;
@@ -86,8 +82,8 @@ contract L1RewardManager is IL1RewardManager, L2Base{
     }
 
 
-    function _getStrategy(address _strategy)internal returns (IStrategy){
-        return IStrategy(_strategy);
-    }
+    // function getStrategy(address _strategy)internal view returns (IStrategy){
+    //     return IStrategy(_strategy);
+    // }
 
 }

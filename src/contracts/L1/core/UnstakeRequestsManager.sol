@@ -116,7 +116,7 @@ contract UnstakeRequestsManager is
             getLocator().dapplinkBridge(),
             gasLimit,
             ethRequested,
-            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,to,value)", sourceChainId, destChainId, requester, ethRequested)
+            abi.encodeWithSignature("BridgeInitiateETH(uint256,uint256,address)", sourceChainId, destChainId, requester)
         );
         if (!success) {
             revert BridgeInitiateETHFailed();

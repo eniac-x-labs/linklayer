@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -9,6 +9,8 @@ import "../interfaces/IStrategyManager.sol";
 import "../../access/interface/IL2Pauser.sol";
 import "../../libraries/ETHAddress.sol";
 import "../../libraries/SafeCall.sol";
+import {IStrategy} from "../interfaces/IStrategy.sol";
+
 
 
 contract StrategyBase is Initializable, IStrategy {
@@ -148,7 +150,7 @@ contract StrategyBase is Initializable, IStrategy {
             virtualWethBalance -= amountToSend;
         }
         // Reduce shares in stakerStrategyL1BackShares
-        strategyManager.updateStakerStrategyL1BackShares(recipient, IStrategy(address(this)), amountToSend);
+        strategyManager.updateStakerStrategyL1BackShares(recipient, address(this), amountToSend);
     }
 
     function explanation() external pure virtual override returns (string memory) {
@@ -186,7 +188,7 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function shares(address user) public view virtual returns (uint256) {
-        return strategyManager.stakerStrategyShares(user, IStrategy(address(this)));
+        return strategyManager.stakerStrategyShares(user, address(this));
     }
 
     function ethWethBalance() internal view virtual returns (uint256) {

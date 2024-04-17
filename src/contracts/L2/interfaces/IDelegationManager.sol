@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
-import "./IStrategy.sol";
-import "./ISignatureUtils.sol";
-import "./IStrategyManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ISignatureUtils} from "./ISignatureUtils.sol";
+import {IStrategyManager} from "./IStrategyManager.sol";
 
 interface IDelegationManager is ISignatureUtils {
     enum OperatorType {
@@ -43,12 +43,12 @@ interface IDelegationManager is ISignatureUtils {
         address withdrawer;
         uint256 nonce;
         uint32 startBlock;
-        IStrategy[] strategies;
+        address[] strategies;
         uint256[] shares;
     }
 
     struct QueuedWithdrawalParams {
-        IStrategy[] strategies;
+        address[] strategies;
         uint256[] shares;
         address withdrawer;
     }
@@ -59,9 +59,9 @@ interface IDelegationManager is ISignatureUtils {
 
     event OperatorNodeUrlUpdated(address indexed operator, string metadataURI);
 
-    event OperatorSharesIncreased(address indexed operator, address staker, IStrategy strategy, uint256 shares);
+    event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares);
 
-    event OperatorSharesDecreased(address indexed operator, address staker, IStrategy strategy, uint256 shares);
+    event OperatorSharesDecreased(address indexed operator, address staker, address strategy, uint256 shares);
 
     event StakerDelegated(address indexed staker, address indexed operator);
 
@@ -77,7 +77,7 @@ interface IDelegationManager is ISignatureUtils {
     
     event MinWithdrawalDelayBlocksSet(uint256 previousValue, uint256 newValue);
 
-    event StrategyWithdrawalDelayBlocksSet(IStrategy strategy, uint256 previousValue, uint256 newValue);
+    event StrategyWithdrawalDelayBlocksSet(address strategy, uint256 previousValue, uint256 newValue);
 
     function registerAsOperator(
         OperatorDetails calldata registeringOperatorDetails,
@@ -124,13 +124,13 @@ interface IDelegationManager is ISignatureUtils {
 
     function increaseDelegatedShares(
         address staker,
-        IStrategy strategy,
+        address strategy,
         uint256 shares
     ) external;
 
     function decreaseDelegatedShares(
         address staker,
-        IStrategy strategy,
+        address strategy,
         uint256 shares
     ) external;
 
@@ -146,12 +146,12 @@ interface IDelegationManager is ISignatureUtils {
 
     function getOperatorShares(
         address operator,
-        IStrategy[] memory strategies
+        address[] memory strategies
     ) external view returns (uint256[] memory);
 
-    function getWithdrawalDelay(IStrategy[] calldata strategies) external view returns (uint256);
+    function getWithdrawalDelay(address[] calldata strategies) external view returns (uint256);
 
-    function operatorShares(address operator, IStrategy strategy) external view returns (uint256);
+    function operatorShares(address operator, address strategy) external view returns (uint256);
 
     function isDelegated(address staker) external view returns (bool);
 
@@ -163,7 +163,7 @@ interface IDelegationManager is ISignatureUtils {
 
     function minWithdrawalDelayBlocks() external view returns (uint256);
 
-    function strategyWithdrawalDelayBlocks(IStrategy strategy) external view returns (uint256);
+    function strategyWithdrawalDelayBlocks(address strategy) external view returns (uint256);
 
     function calculateCurrentStakerDelegationDigestHash(
         address staker,

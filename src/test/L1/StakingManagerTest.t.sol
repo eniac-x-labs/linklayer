@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
-
+import { IUnstakeRequestsManagerWrite } from "@/contracts/L1/interfaces/IUnstakeRequestsManager.sol";
 import "@/test/L1/L1Test.t.sol";
 contract StakingManagerTest is L1Test{
     address admin = msg.sender;
@@ -80,11 +80,14 @@ contract StakingManagerTest is L1Test{
     function testClaimReqest()public{
         vm.startPrank(admin);
 
-        address[] memory stakers = new address[](2);
-        stakers[0] = admin;
-        stakers[1] = 0x4242424242424242424242424242424242424242;
+        IUnstakeRequestsManagerWrite.requestsInfo[] memory requests = new IUnstakeRequestsManagerWrite.requestsInfo[](2);
+
+        requests[0] = IUnstakeRequestsManagerWrite.requestsInfo({
+            requestAddress:admin,
+            unStakeMessageNonce:1
+        });
         // claimUnstakeRequest(IUnstakeRequestsManagerWrite.requestsInfo[] memory requests, uint256 sourceChainId, uint256 destChainId, uint256 gasLimit) external onlyDappLinkBridge {
-        // StakingManager(payable(address(proxyStakingManager))).claimUnstakeRequest(stakers,0,1,100000);
+        StakingManager(payable(address(proxyStakingManager))).claimUnstakeRequest(requests,17000,11155420,2000000);
     }
 
 
