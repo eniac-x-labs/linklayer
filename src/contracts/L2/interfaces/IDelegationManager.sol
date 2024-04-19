@@ -71,7 +71,7 @@ interface IDelegationManager is ISignatureUtils {
 
     event WithdrawalQueued(bytes32 withdrawalRoot, Withdrawal withdrawal);
 
-    event WithdrawalCompleted(bytes32 withdrawalRoot);
+    event WithdrawalCompleted(address operator, address staker, address strategy, uint256 shares);
 
     event WithdrawalMigrated(bytes32 oldWithdrawalRoot, bytes32 newWithdrawalRoot);
     
