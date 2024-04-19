@@ -378,7 +378,7 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
                     weth: weth
                 });
                 unchecked { ++i; }
-                emit WithdrawalCompleted(currentOperator, msg.sender, strategy, shares);
+                emit WithdrawalCompleted(currentOperator, msg.sender, withdrawal.strategies[i], withdrawal.shares[i]);
             }
         } else {
           
@@ -397,7 +397,7 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
                     });
                 }
                 unchecked { ++i; }
-                emit WithdrawalCompleted(currentOperator, msg.sender, strategy, shares);
+                emit WithdrawalCompleted(currentOperator, msg.sender, withdrawal.strategies[i], withdrawal.shares[i]);
             }
         }
         // emit WithdrawalCompleted(withdrawalRoot);
