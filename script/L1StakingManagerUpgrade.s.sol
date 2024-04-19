@@ -7,7 +7,7 @@ import  {ITransparentUpgradeableProxy}  from "@openzeppelin/contracts/proxy/tran
 import "forge-std/Script.sol";
 
 
-// forge script ./script/L1StakingManagerUpgrade.s.sol:L1StakingManagerUpgrade --private-key 0f0b59bddf091da85ebee2d547b8e8c2d2a92fa23982bc54fe13d6e439b5f4e8  --rpc-url https://rpc.holesky.ethpandaops.io  --broadcast -vvvv --legacy --gas-price 1000000000 
+// forge script ./script/L1StakingManagerUpgrade.s.sol:L1StakingManagerUpgrade --private-key xxxx  --rpc-url https://rpc.holesky.ethpandaops.io  --broadcast -vvvv --legacy --gas-price 1000000000 
 contract L1StakingManagerUpgrade is Script {
     StakingManager      public stakerManager;
     function run() external {

@@ -359,6 +359,7 @@ contract StrategyManager is
     }
 
     function updateStakerStrategyL1BackShares(address staker, address strategy, uint256 shares) external onlyStrategiesWhitelistedForDeposit(strategy) {
+        require(stakerStrategyL1BackShares[staker][strategy] >= shares, "StrategyManager: shares to remove is more than staker has");
         stakerStrategyL1BackShares[staker][strategy] -= shares;
     }
 

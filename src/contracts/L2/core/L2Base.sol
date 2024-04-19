@@ -24,7 +24,7 @@ abstract contract L2Base is Initializable, OwnableUpgradeable, ReentrancyGuardUp
         _transferOwnership(_admin);
     }
 
-    function setLocator(address _locator) external onlyRelayer {
+    function setLocator(address _locator) external {
         locator = _locator;
     }
 

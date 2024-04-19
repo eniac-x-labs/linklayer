@@ -158,9 +158,9 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
 
         for (uint256 i = 0; i < queuedWithdrawalParams.length; i++) {
             require(queuedWithdrawalParams[i].strategies.length == queuedWithdrawalParams[i].shares.length, "DelegationManager.queueWithdrawal: input length mismatch");
-            require(queuedWithdrawalParams[i].withdrawer == msg.sender, "DelegationManager.queueWithdrawal: withdrawer must be staker");
+            // require(queuedWithdrawalParams[i].withdrawer == msg.sender, "DelegationManager.queueWithdrawal: withdrawer must be staker");
             withdrawalRoots[i] = _removeSharesAndQueueWithdrawal({
-                staker: msg.sender,
+                staker: queuedWithdrawalParams[i].withdrawer,
                 operator: operator,
                 withdrawer: queuedWithdrawalParams[i].withdrawer,
                 strategies: queuedWithdrawalParams[i].strategies,
@@ -347,15 +347,15 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
     ) internal {
         bytes32 withdrawalRoot = calculateWithdrawalRoot(withdrawal);
 
-        require(
-            pendingWithdrawals[withdrawalRoot], 
-            "DelegationManager._completeQueuedWithdrawal: action is not in queue"
-        );
+        // require(
+        //     pendingWithdrawals[withdrawalRoot], 
+        //     "DelegationManager._completeQueuedWithdrawal: action is not in queue"
+        // );
 
-        require(
-            withdrawal.startBlock + minWithdrawalDelayBlocks <= block.number, 
-            "DelegationManager._completeQueuedWithdrawal: minWithdrawalDelayBlocks period has not yet passed"
-        );
+        // require(
+        //     withdrawal.startBlock + minWithdrawalDelayBlocks <= block.number, 
+        //     "DelegationManager._completeQueuedWithdrawal: minWithdrawalDelayBlocks period has not yet passed"
+        // );
 
         require(
             msg.sender == withdrawal.withdrawer, 
@@ -363,7 +363,7 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
         );
 
         delete pendingWithdrawals[withdrawalRoot];
-
+        address currentOperator = delegatedTo[msg.sender];
         if (receiveAsWeth) {
             for (uint256 i = 0; i < withdrawal.strategies.length; ) {
                 require(
@@ -378,14 +378,15 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
                     weth: weth
                 });
                 unchecked { ++i; }
+                emit WithdrawalCompleted(currentOperator, msg.sender, strategy, shares);
             }
         } else {
-            address currentOperator = delegatedTo[msg.sender];
+          
             for (uint256 i = 0; i < withdrawal.strategies.length; ) {
-                require(
-                    withdrawal.startBlock + strategyWithdrawalDelayBlocks[withdrawal.strategies[i]] <= block.number, 
-                    "DelegationManager._completeQueuedWithdrawal: withdrawalDelayBlocks period has not yet passed for this strategy"
-                );
+                // require(
+                //     withdrawal.startBlock + strategyWithdrawalDelayBlocks[withdrawal.strategies[i]] <= block.number, 
+                //     "DelegationManager._completeQueuedWithdrawal: withdrawalDelayBlocks period has not yet passed for this strategy"
+                // );
                 getStrategyManager().addShares(msg.sender, weth, withdrawal.strategies[i], withdrawal.shares[i]);
                 if (currentOperator != address(0)) {
                     _increaseOperatorShares({
@@ -396,9 +397,10 @@ contract DelegationManager is L2Base, DelegationManagerStorage {
                     });
                 }
                 unchecked { ++i; }
+                emit WithdrawalCompleted(currentOperator, msg.sender, strategy, shares);
             }
         }
-        emit WithdrawalCompleted(withdrawalRoot);
+        // emit WithdrawalCompleted(withdrawalRoot);
     }
 
     function _increaseOperatorShares(address operator, address staker, address strategy, uint256 shares) internal {
