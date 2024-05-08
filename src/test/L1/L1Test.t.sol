@@ -100,7 +100,8 @@ contract L1Test is Test {
         {
             DETH.Init memory initDeth = DETH.Init({
                 admin: admin,
-                l2ShareAddress: admin
+                l2ShareAddress: admin,
+                bridgeAddress: msg.sender
             });
             DETH(address(proxyDETH)).initialize(initDeth);
             DETH(address(proxyDETH)).setLocator(address(l1Locator));

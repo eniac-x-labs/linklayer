@@ -9,6 +9,7 @@ interface IDETH is IERC20, IERC20Permit {
     error NotStakingManagerContract();
     error NotL2ShareAddress();
     error NotUnstakeRequestsManagerContract();
+    error BridgeStakingMessageInitFailed();
 
      struct BatchMint {
         address staker;

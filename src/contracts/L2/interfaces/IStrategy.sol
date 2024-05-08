@@ -37,4 +37,8 @@ interface IStrategy {
 
     function WETHBalance() external view returns (uint256);
 
+    function updateStakeMessageHash(uint256 stakeMessageNonce, bytes32 stakeMsgHash) external;
+
+    function TransferShareTo(address from, address to, uint256 shares, uint256 stakeNonce) external;
+
 }

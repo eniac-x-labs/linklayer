@@ -93,7 +93,8 @@ contract L1Deployer is Script {
         {
             DETH.Init memory initDeth = DETH.Init({
                 admin: msg.sender,
-                l2ShareAddress: msg.sender
+                l2ShareAddress: msg.sender,
+                bridgeAddress: msg.sender
             });
             DETH(address(proxyDETH)).initialize(initDeth);
             DETH(address(proxyDETH)).setLocator(address(l1Locator));

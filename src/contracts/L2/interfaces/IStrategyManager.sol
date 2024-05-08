@@ -43,7 +43,7 @@ interface IStrategyManager {
     
     function withdrawSharesAsWeth(address recipient, address strategy, uint256 shares, IERC20 weth) external;
 
-    function stakerStrategyShares(address user, address strategy) external view returns (uint256 shares);
+    function getStakerStrategyShares(address user, address strategy) external view returns (uint256 shares);
 
     function getDeposits(address staker) external view returns (address[] memory, uint256[] memory);
 
@@ -83,4 +83,6 @@ interface IStrategyManager {
     function getStakerStrategyL1BackShares(address staker, address strategy) external returns (uint256);
 
     function updateStakerStrategyL1BackShares(address staker, address strategy, uint256 shares) external;
+
+    function transferStakerStrategyShares(address strategy, address from, address to, uint256 shares) external returns (bool);
 }
