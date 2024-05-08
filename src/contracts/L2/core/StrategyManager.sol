@@ -138,6 +138,11 @@ contract StrategyManager is
         getStrategy(strategy).withdraw(recipient, weth, shares);
     }
 
+    function getStakerStrategyShares(address user, address strategy) external view returns (uint256 shares) {
+        return stakerStrategyShares[user][strategy];
+    }
+
+
     function migrateQueuedWithdrawal(DeprecatedStruct_QueuedWithdrawal memory queuedWithdrawal) external onlyDelegationManager returns(bool, bytes32) {
         bytes32 existingWithdrawalRoot = calculateWithdrawalRoot(queuedWithdrawal);
         bool isDeleted;
@@ -363,6 +368,12 @@ contract StrategyManager is
         stakerStrategyL1BackShares[staker][strategy] -= shares;
     }
 
+
+    function transferStakerStrategyShares(address strategy, address from, address to, uint256 shares) external returns (bool) {
+        stakerStrategyShares[from][strategy] -= shares;
+        stakerStrategyShares[to][strategy] += shares;
+        return true;
+    }
 
     
     modifier onlyStrategyWhitelister() {

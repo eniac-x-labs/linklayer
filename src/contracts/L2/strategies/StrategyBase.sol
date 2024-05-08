@@ -38,8 +38,12 @@ contract StrategyBase is Initializable, IStrategy {
 
     uint256 public virtualWethBalance;
 
+    mapping(uint256 => bytes32) public stakeMessageHashRelate;
+
     event TransferETHToL2DappLinkBridge(uint256 sourceChainId, uint256 destChainId, address bridge, address l1StakingManagerAddr,
         address tokenAddress, uint256 bridgeEthAmount ,uint256 batchId, uint256 nonce);
+
+    event StakeMessageHashRelate(uint256 stakeMessageNonce, bytes32 stakeMsgHash);
 
     modifier onlyStrategyManager() {
         require(msg.sender == address(strategyManager), "StrategyBase.onlyStrategyManager");
@@ -188,7 +192,7 @@ contract StrategyBase is Initializable, IStrategy {
     }
 
     function shares(address user) public view virtual returns (uint256) {
-        return strategyManager.stakerStrategyShares(user, address(this));
+        return strategyManager.getStakerStrategyShares(user, address(this));
     }
 
     function ethWethBalance() internal view virtual returns (uint256) {
@@ -242,6 +246,24 @@ contract StrategyBase is Initializable, IStrategy {
         return false;
     }
 
+    function updateStakeMessageHash(uint256 stakeMessageNonce, bytes32 stakeMsgHash) external onlyRelayer {
+        stakeMessageHashRelate[stakeMessageNonce] = stakeMsgHash;
+        emit StakeMessageHashRelate(stakeMessageNonce, stakeMsgHash);
+    }
+
+    function TransferShareTo(address from, address to, uint256 shares, uint256 stakeNonce) external {
+        bytes32 sakeMessageHash = keccak256(
+            abi.encode(
+                from,
+                to,
+                shares,
+                stakeNonce
+            )
+        );
+        if (sakeMessageHash == stakeMessageHashRelate[stakeNonce]) {
+            strategyManager.transferStakerStrategyShares(address(this), from, to, shares);
+        }
+    }
 
     uint256[46] private __gap;
 }

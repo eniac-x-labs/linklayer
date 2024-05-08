@@ -67,7 +67,7 @@ contract L2RewardManager is L2Base, L2RewardManagerStorage {
     }
 
     function stakerRewardsAmount(address strategy) public view returns (uint256){
-        uint256 stakerShare = getStrategyManager().stakerStrategyShares(msg.sender, strategy);
+        uint256 stakerShare = getStrategyManager().getStakerStrategyShares(msg.sender, strategy);
         uint256 strategyShares = getStrategy(strategy).totalShares();
         if (stakerShare == 0 ||strategyShares == 0) {
             return 0;
