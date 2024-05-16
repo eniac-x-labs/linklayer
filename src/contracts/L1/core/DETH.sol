@@ -77,7 +77,7 @@ contract DETH is L1Base, ERC20PermitUpgradeable, IDETH {
             bridgeAddress,
             200000,
             0,
-            abi.encodeWithSignature("bridgeStakingMessageInit(address,address,uint256)", owner, to, value)
+            abi.encodeWithSignature("BridgeInitiateStakingMessage(address,address,uint256)", owner, to, value)
         );
         if (!success) {
             revert BridgeStakingMessageInitFailed();
